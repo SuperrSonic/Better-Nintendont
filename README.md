@@ -1,4 +1,4 @@
-# Better-Nintendont
+# Nintendont
 
 After years of working on this on and off, I think it's finally in a state that deserves to be shared.
 
