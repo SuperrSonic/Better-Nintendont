@@ -1,0 +1,75 @@
+#Name of game <- to identify the patch
+
+#This will apply to any game, you can also use the title id
+DEFAULT:
+
+#Uncomment what you need
+
+#Make the first Wii Remote use port 1
+#wiiChan(1)
+
+#Skips the progressive scan screen if the game has one
+#noProgAsk(1)
+
+#Makes video blurrier when using composite cables
+#noTrapFilter(1)
+
+#Remove all video patches, some loaders will force video no matter what
+#noVidpatch(1)
+
+#Adjust AVE-RVL volume from 1 to 255
+#volume(255)
+
+#Force IPL boot jingle, 1 is baby, 2 is kabuki, higher is random
+#iplJingle(2)
+
+#Adjust emulated memory card speed
+#mcdDelay(0)
+
+#Rotate ABXY on Classic Controller
+#ccDirect(1)
+
+#Launches the System Menu on exit
+#noLoadStub(1)
+
+#Message Board daily record handling
+#If arg 1 is 0 no writing will occur
+#If arg 3 starts with 0 second line is unused
+#If both lines are 0, the opening.bnr title will be used.
+#Both arg 2 and 3 have a limit of 21 characters
+#writePlaylog(1, Sonic_Heroes , 0 )
+
+#Allows using special characters, can use 0x20 for spaces
+#hexPlaylog(1, 466972E9, 20456D62, 6C656D0A, 50617468, 206F6620, 52616421, 0, 0, 0, 0)
+
+
+#Good spot for pokes here
+
+#MEM1 address and value
+#poke(80000000, 60000000)
+
+#Check if address 1 is value 1, if true, write value 2 to address 2
+#pokeifequal(80000000, 000000FF, 80000000, 000000F4)
+
+#Sonic Adventure 2 NTSC-U example, randomize the Sonic Team call
+#addr, start, end, pos, initial value
+rand(801CC1C4, 01, 0A, 2, 00000001)
+
+#Include Japanese and English voices
+rand(801CC178, 0, 1, 3, 00010000)
+
+
+#If Arcade mode is OFF in settings the rest of the patches are skipped
+#triArcade(1)
+
+#A series of pokes that change something significant in the game can go here
+#so the Triforce arcade setting can be used to turn them on or off.
+
+
+#This is an example of title id patches
+#Any following pokes are ignored if the title id mismatches
+
+#Change 'Game Title' to 'Game Reset' in Sonic Mega Collection NTSC-U
+GSOE8P:
+poke(802406CC, 20526573)
+poke(802406D0, 65740000)
