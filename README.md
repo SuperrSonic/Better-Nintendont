@@ -77,18 +77,16 @@ Look at the included patch.txt for more examples, if you put a patch.txt file in
 
 The poke commands are quite useful, they are built into a list that's cached to MEM2. Before the game starts, the patches are applied, if the game loads an executable, the patches will re-apply.
 
-Gecko codes rely on PADRead and OSSleepThread to work and that makes some scenarios impossible for codes to work, this is one of the reasons why my method is necessary for making certain mods.
+Gecko codes rely on PADRead and OSSleepThread to work and that makes some scenarios impossible for certain codes, this is one of the reasons why my method is necessary for making certain mods.
 
 
 # Things to note
 
 While this is based on version 5.482, it merges most of the useful changes from later.
 
-BBA support was notably left out since I have no use for it. DRC (Wii U Gamepad) is also out, but can be compiled back easily.
+BBA support was notably left out since I have no use for it. DRC (Wii U Gamepad) is also out, but can be compiled back easily. Nunchuk support has been completely removed.
 
-Nunchuk support has been completely removed.
-
-This isn't intended to replace Nintendont, it is not my focus. The compatibility fixes are available to anyone, but going forward, the patching system will be crucial for my mods, so this standalone release will continue to be useful.
+This isn't intended to replace Nintendont, it is not my focus. The compatibility fixes are available to anyone, but going forward, the patching system will be crucial for my mods, so this standalone release will continue being supported.
 
 
 # Why is this a hard fork?
