@@ -214,7 +214,7 @@ bool PatchStaticWidescreen(u32 TitleID, u32 Region)
 	{
 		case 0x4D34: // Mario Kart Double Dash
 			dbgprintf("PatchWidescreen:[Mario Kart Double Dash] applied\r\n");
-			if(Region == REGION_ID_USA || Region == REGION_ID_JAP)
+			if(Region == REGION_ID_USA || Region == REGION_ID_JPN)
 			{
 				PatchWideMulti(0x1D65A4, 3);
 				PatchWideMulti(0x1D65FC, 2);
@@ -326,7 +326,7 @@ bool PatchStaticWidescreen(u32 TitleID, u32 Region)
 				PatchWideMulti(0x206A4, 0);
 			else if(Region == REGION_ID_EUR)
 				PatchWideMulti(0x2143C, 0);
-			else if(Region == REGION_ID_JAP)
+			else if(Region == REGION_ID_JPN)
 				PatchWideMulti(0x20300, 0);
 			return true;
 
@@ -336,7 +336,7 @@ bool PatchStaticWidescreen(u32 TitleID, u32 Region)
 				write32(0xAC768, 0xD01E0040);
 			else if(Region == REGION_ID_EUR)
 				write32(0xAC9A4, 0xD01E0040);
-			else if(Region == REGION_ID_JAP)
+			else if(Region == REGION_ID_JPN)
 				write32(0xADF1C, 0xD01E0040);
 			return false; //aspect ratio gets patched later
 
@@ -379,7 +379,7 @@ bool PatchStaticWidescreen(u32 TitleID, u32 Region)
 					return true;
 				}
 			}
-			else if(Region == REGION_ID_JAP)
+			else if(Region == REGION_ID_JPN)
 			{
 				if(read32(0x48A104) == FLT_ASPECT_1_200)
 				{
@@ -441,7 +441,7 @@ bool PatchStaticWidescreen(u32 TitleID, u32 Region)
 			} else if(Region == REGION_ID_EUR) {
 				PatchWideMulti(0x1DEADC,2); //picture effects
 				PatchWideDiv(0x29BC5C,6); //widescreen, clipping
-			} else if(Region == REGION_ID_JAP) {
+			} else if(Region == REGION_ID_JPN) {
 				PatchWideMulti(0x1DCCDC,1); //picture effects
 				PatchWideDiv(0x298DE4,6); //widescreen, clipping
 			}
@@ -481,7 +481,7 @@ bool PatchStaticWidescreen(u32 TitleID, u32 Region)
 				// TODO: Not implemented.
 				return false;
 			}
-			else if (Region == REGION_ID_JAP)
+			else if (Region == REGION_ID_JPN)
 			{
 				// NOTE: These addresses were found by calculating the
 				// difference between .data7 in the US executable
@@ -584,7 +584,7 @@ bool PatchStaticWidescreen(u32 TitleID, u32 Region)
 		case 0x4249: // Resident Evil Remake
 		case 0x4841: // Resident Evil 2
 		case 0x4C45: // Resident Evil 3: Nemesis
-			// These four Resident Evil games utilize preredered backgrounds in 4:3
+			// These four Resident Evil games utilize prerendered backgrounds in 4:3
 			// This causes the 3D objects/models to have an odd side effect
 			// with the background images. 
 			return true;

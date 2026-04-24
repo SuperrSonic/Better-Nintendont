@@ -118,6 +118,7 @@ enum
 	FCODE_PsoDolEntryMod,
 	FCODE_DolEntryMod,
 	FCODE_AppLoad,
+	//FCODE_HotReset,
 } FPatternCodes;
 
 enum
@@ -221,6 +222,7 @@ static FuncPattern NormalFPatterns[] =
 	{  0x2B8,   77,    8,   12,   10,    4,	NULL,				FCODE___OSInitAudioSystem_B,"__OSInitAudioSystem",	"DBG B",	FGROUP___OSInitAudioSystem,	0 },
 #ifdef AUDIOSTREAM
 	{  0x420,  103,   23,   34,   32,    9,	NULL,				FCODE___DSPHandler,			"__DSPHandler",			NULL,		FGROUP___DSPHandler,		0 },
+	{  0x33C,   78,   16,   25,   28,    9,	NULL,				FCODE___DSPHandler,			"__DSPHandler",			"Sunshine",	FGROUP___DSPHandler,		0 },
 	{  0x508,  150,   23,   36,   33,    9,	NULL,				FCODE___DSPHandler_DBG,		"__DSPHandler",			"DBG",		FGROUP___DSPHandler,		0 },
 #else
 	{   0x94,   18,   10,    2,    0,    2,	DVDLowReadAudioNULL,sizeof(DVDLowReadAudioNULL),"DVDLowAudioStream",	"A",		FGROUP_DVDLowAudioStream,	0 },
@@ -228,6 +230,7 @@ static FuncPattern NormalFPatterns[] =
 	{   0x88,   18,    8,    2,    0,    2,	DVDLowAudioStatusNULL,	sizeof(DVDLowAudioStatusNULL),"DVDLowRequestAudioStatus",	NULL,FGROUP_NONE,			0 },
 	{   0x98,   19,    8,    2,    1,    3,	DVDLowAudioConfigNULL,	sizeof(DVDLowAudioConfigNULL),"DVDLowAudioBufferConfig",	NULL,FGROUP_NONE,			0 },
 #endif
+	//{   0x40,    1,    2,    0,    7,    1, NULL,				FCODE_HotReset,				"HotReset",				NULL,		FGROUP_NONE,				0 },
 };
 
 static FuncPattern TRIFPatterns[] =

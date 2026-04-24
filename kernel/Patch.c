@@ -3,7 +3,7 @@
 Nintendont (Kernel) - Playing Gamecubes in Wii mode on a Wii U
 
 Copyright (C) 2013  crediar
-Copyright (C) 2014 - 2018 FIX94
+Copyright (C) 2014 - 2016 FIX94
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -103,6 +103,10 @@ extern u32 RealDiscCMD;
 extern u32 drcAddress;
 extern u32 drcAddressAligned;
 u32 IsN64Emu = 0;
+u32 useAGB = 0;
+extern bool AGB_Loaded;
+extern u32 AGBTimer;
+u32 useGenesis = 0;
 
 // SHA-1 hashes of known DSP modules.
 static const unsigned char DSPHashes[][20] =
@@ -914,7 +918,7 @@ static bool IsPokemonDemo()
 static bool DemoNeedsPaperMarioDMA()
 {
 	if( (DOLSize == 3983396 && DOLMinOff == 0x3100 && DOLMaxOff == 0x41E4E0 &&
-		read32(0x2BB458) == 0x50415045 && read32(0x2BB45C) == 0x52435241) || //Paper Mario RPG JAP
+		read32(0x2BB458) == 0x50415045 && read32(0x2BB45C) == 0x52435241) || //Paper Mario RPG JPN
 		(DOLSize == 3984836 && DOLMinOff == 0x3100 && DOLMaxOff == 0x41EA80 &&
 		read32(0x2BB818) == 0x50415045 && read32(0x2BB81C) == 0x52435241) || //Paper Mario 2 USA
 		(DOLSize == 4019876 && DOLMinOff == 0x3100 && DOLMaxOff == 0x429140 &&
@@ -931,7 +935,7 @@ static bool DemoNeedsPaperMarioDMA()
 static bool DemoNeedsPostRequest()
 {
 	if( (DOLSize == 4107972 && DOLMinOff == 0x3100 && DOLMaxOff == 0x412760 &&
-		read32(0x3768E0) == 0x53756E73 && read32(0x3768E4) == 0x68696E65) || //Sunshine JAP
+		read32(0x3768E0) == 0x53756E73 && read32(0x3768E4) == 0x68696E65) || //Sunshine JPN
 		(DOLSize == 4123684 && DOLMinOff == 0x3100 && DOLMaxOff == 0x416460 &&
 		read32(0x3A61AC) == 0x53756E73 && read32(0x3A61B0) == 0x68696E65) || //Sunshine EUR
 		(DOLSize == 4124068 && DOLMinOff == 0x3100 && DOLMaxOff == 0x4165E0 &&
@@ -945,7 +949,7 @@ static bool DemoNeedsPostRequest()
 		(DOLSize == 3110372 && DOLMinOff == 0x3100 && DOLMaxOff == 0x3EE780 &&
 		read32(0x2AC2BC) == 0x50696B6D && read32(0x2AC2C0) == 0x696E2064) || //Pikmin USA
 		(DOLSize == 3141732 && DOLMinOff == 0x3100 && DOLMaxOff == 0x3F59A0 &&
-		read32(0x2B28DC) == 0x50696B6D && read32(0x2B28E0) == 0x696E2064) )  //Pikmin JAP
+		read32(0x2B28DC) == 0x50696B6D && read32(0x2B28E0) == 0x696E2064) )  //Pikmin JPN
 	{
 		dbgprintf("Patch:Known Problematic Demo, using ARQPostRequest\r\n");
 		return true;
@@ -958,11 +962,11 @@ static bool DemoNeedsHookPatch()
 	if( (DOLSize == 2044804 && DOLMinOff == 0x3100 && DOLMaxOff == 0x2EE600 &&
 		read32(0x1A9CA8) == 0x4A4F4520 && read32(0x1A9CAC) == 0x4D555354) || //Viewtiful Joe USA
 		(DOLSize == 2044804 && DOLMinOff == 0x3100 && DOLMaxOff == 0x2EE600 &&
-		read32(0x1A9CE8) == 0x4A4F4520 && read32(0x1A9CEC) == 0x4D555354) || //Viewtiful Joe JAP
+		read32(0x1A9CE8) == 0x4A4F4520 && read32(0x1A9CEC) == 0x4D555354) || //Viewtiful Joe JPN
 		(DOLSize == 2556708 && DOLMinOff == 0x3100 && DOLMaxOff == 0x3732A0 &&
 		read32(0x20A1D0) == 0x4A4F4520 && read32(0x20A1D4) == 0x4D555354) || //Viewtiful Joe EUR
 		(DOLSize == 2176260 && DOLMinOff == 0x3100 && DOLMaxOff == 0x2D99A0 &&
-		read32(0x1CF268) == 0x62696F68 && read32(0x1CF26C) == 0x617A6172) || //Biohazard 4 JAP
+		read32(0x1CF268) == 0x62696F68 && read32(0x1CF26C) == 0x617A6172) || //Biohazard 4 JPN
 		(DOLSize == 2177508 && DOLMinOff == 0x3100 && DOLMaxOff == 0x2FDCE0 &&
 		read32(0x1D2A00) == 0x62696F68 && read32(0x1D2A04) == 0x617A6172) || //Resident Evil 4 USA
 		(DOLSize == 1118820 && DOLMinOff == 0x3100 && DOLMaxOff == 0x3C4C40 &&
@@ -987,7 +991,6 @@ static bool GameNeedsHook()
 			(TITLE_ID) == 0x474832 ||	// NFS: HP2
 			(TITLE_ID) == 0x474156 ||	// Avatar Last Airbender
 			(TITLE_ID) == 0x47484E ||	// Hunter the Reckoning
-			(TITLE_ID) == 0x473442 ||	// Resident Evil 4
 			(TITLE_ID) == 0x474856 ||	// Disneys Hide and Sneak
 			(TITLE_ID) == 0x474353 ||	// Street Racing Syndicate
 			(TITLE_ID) == 0x474241 ||	// NBA 2k2
@@ -1003,6 +1006,7 @@ static bool GameNeedsHook()
 			(TITLE_ID) == 0x475153 ||	// Tales of Symphonia
 			(TITLE_ID) == 0x474645 ||	// Fire Emblem
 			(TITLE_ID) == 0x47414C ||	// Super Smash Bros. Melee
+			(GAME_ID) == 0x47544F4A ||	// Tales of Symphonia (NTSC-J)
 			(GAME_ID) == 0x474F544A ||	// One Piece - Treasure Battle
 			(GAME_ID) == 0x4747504A ||	// SD Gundam Gashapon Wars
 			DemoNeedsHookPatch() );
@@ -1174,10 +1178,10 @@ void DoPatches( char *Buffer, u32 Length, u32 DiscOffset )
 			PSOHack = PSO_STATE_LOAD | PSO_STATE_NOENTRY;
 		}
 		if( (Length == 0x318E0 && read32((u32)Buffer+0x318B0) == 0x4CBEBC20) || //PSO PAL/NTSC
-			(Length == 0x31B60 && read32((u32)Buffer+0x31B28) == 0x4CBEBC20) || //PSO JAP
-			(Length == 0x339A0 && read32((u32)Buffer+0x33960) == 0x4CBEBC20) || //PSO Plus JAP v1.05
-			(Length == 0x33FC0 && read32((u32)Buffer+0x33F78) == 0x4CBEBC20) || //PSO 3 JAP
-			(Length == 0x34B60 && read32((u32)Buffer+0x34B28) == 0x4CBEBC20))   //PSO Demo JAP
+			(Length == 0x31B60 && read32((u32)Buffer+0x31B28) == 0x4CBEBC20) || //PSO JPN
+			(Length == 0x339A0 && read32((u32)Buffer+0x33960) == 0x4CBEBC20) || //PSO Plus JPN v1.05
+			(Length == 0x33FC0 && read32((u32)Buffer+0x33F78) == 0x4CBEBC20) || //PSO 3 JPN
+			(Length == 0x34B60 && read32((u32)Buffer+0x34B28) == 0x4CBEBC20))   //PSO Demo JPN
 		{
 			dbgprintf("PSO:switcher.dol\r\n");
 			PSOHack = PSO_STATE_LOAD | PSO_STATE_SWITCH;
@@ -1190,8 +1194,8 @@ void DoPatches( char *Buffer, u32 Length, u32 DiscOffset )
 		else if((Length == 0x19580 && read32((u32)Buffer+0x19560) == 0xC8BFAF78) || //PSO Plus NTSC v1.00
 				(Length == 0x19EA0 && read32((u32)Buffer+0x19E80) == 0x24C7E996) || //PSO 3 PAL
 				(Length == 0x1A2C0 && read32((u32)Buffer+0x1A2A0) == 0xE2BEE1FF) || //PSO 3 NTSC
-				(Length == 0x1A5C0 && read32((u32)Buffer+0x1A5A0) == 0x4CA7BEBC) || //PSO Plus JAP v1.05
-				(Length == 0x1A960 && read32((u32)Buffer+0x1A940) == 0x09F8FF13))   //PSO 3 JAP
+				(Length == 0x1A5C0 && read32((u32)Buffer+0x1A5A0) == 0x4CA7BEBC) || //PSO Plus JPN v1.05
+				(Length == 0x1A960 && read32((u32)Buffer+0x1A940) == 0x09F8FF13))   //PSO 3 JPN
 		{
 			dbgprintf("PSO:switcher.prs\r\n");
 			PSOHack = PSO_STATE_LOAD | PSO_STATE_PSR | PSO_STATE_SWITCH;
@@ -1294,6 +1298,7 @@ void DoPatches( char *Buffer, u32 Length, u32 DiscOffset )
 				//	DOLMaxOff = (u32)Buffer + DOLSize;
 				//}
 //#ifdef DEBUG_DI
+			//	dbgprintf("DIP:ZATCH:0x%08X\r\n", read32(0x2C00) );
 				dbgprintf("DIP:DOL Size:%d MinOff:0x%08X MaxOff:0x%08X\r\n", DOLSize, DOLMinOff, DOLMaxOff );
 //#endif
 				/* Hack Position */
@@ -1369,6 +1374,15 @@ void DoPatches( char *Buffer, u32 Length, u32 DiscOffset )
 		}
 		else if( (u32)Buffer == 0x01300000 && *(vu8*)Buffer == 0x48 )
 		{
+			// Save at reset, and reload the save after 5 secs
+			if( ConfigGetConfig(NIN_CFG_MEMCARDEMU) ) {
+				if(useAGB && AGB_Loaded) {
+					AGB_Save();
+					AGB_Loaded = false;
+					AGBTimer = read32(HW_TIMER);
+				}
+			}
+
 			GameEntry = 0x81300000;
 			DOLMinOff = P2C(GameEntry);
 			DOLMaxOff = DOLMinOff + Length;
@@ -1399,6 +1413,15 @@ void DoPatches( char *Buffer, u32 Length, u32 DiscOffset )
 		{
 			PatchBL(PatchCopy(SonicRidersCopy, SonicRidersCopy_size), SONICRIDERS_HOOK_NTSCU);
 			dbgprintf("Patch:Patched Sonic Riders _Main.rel NTSC-U\r\n");
+		}
+		/* Japanese version using NTSC-U GAME_ID,
+		 * because that's how it determines save file
+		 * reading and writing. */
+		else if( (GAME_ID) == 0x47584545 && (u32)Buffer == SONICRIDERS_BASE_NTSCJ
+			&& Length == 0x80000 && read32(SONICRIDERS_HOOK_NTSCJ) == 0x7CFF3B78 )
+		{
+			PatchBL(PatchCopy(SonicRidersCopy, SonicRidersCopy_size), SONICRIDERS_HOOK_NTSCJ);
+			dbgprintf("Patch:Patched Sonic Riders JPN _Main.rel NTSC-U\r\n");
 		}
 		else if( (GAME_ID) == 0x4758454A && (u32)Buffer == SONICRIDERS_BASE_NTSCJ
 			&& Length == 0x80000 && read32(SONICRIDERS_HOOK_NTSCJ) == 0x7CFF3B78 )
@@ -1470,27 +1493,28 @@ void DoPatches( char *Buffer, u32 Length, u32 DiscOffset )
 	if(TRIGame == TRI_NONE)
 	{
 		if(( TITLE_ID == 0x475858 ) || ( TITLE_ID == 0x474336 ) // Colosseum and XD
-			|| ( GAME_ID == 0x5043534A && Length == 0x479900 ) // Colosseum Bonus
+			|| ( GAME_ID == 0x5043534A && Length == 0x479900 ) // Colosseum Bonus (tokusei)
+			|| ( GAME_ID == 0x50434B4A) // Colosseum Bonus (kakucho)
 			|| IsPokemonDemo() )
 		{
 			dbgprintf("Patch:[Pokemon memset] applied\r\n");
-
-			// patch memset to jump to test function
-			write32(0x00005420, 0x4BFFAC68);
-
-			// patch in test < 0x3000 function
-			write32(0x00000088, 0x3CC08000);
-			write32(0x0000008C, 0x60C63000);
-			write32(0x00000090, 0x7C033000);
-			write32(0x00000094, 0x41800008);
-			write32(0x00000098, 0x480053A5);
-			write32(0x0000009C, 0x48005388);
+			
+			if(write32A(0x00005420, 0x4BFFAC68, 0x4800001D, 0))
+			{
+				// patch in test < 0x3000 function
+				write32(0x00000088, 0x3CC08000);
+				write32(0x0000008C, 0x60C63000);
+				write32(0x00000090, 0x7C033000);
+				write32(0x00000094, 0x41800008);
+				write32(0x00000098, 0x480053A5);
+				write32(0x0000009C, 0x48005388);
+			}
 		}
 		else if( TITLE_ID == 0x47465A && read32(0x5608) == 0x3C804C00 )
 		{
 			dbgprintf("Patch:[F-Zero GX Low Mem] applied\r\n");
 			// dont write "rfi" into 0x1000, 0x1100, 0x1200 and 0x1300
-			if( (read32(0) & 0xFF) == 0x4A )	// JAP
+			if( (read32(0) & 0xFF) == 0x4A )	// JPN
 				memset32( (void*)0x5630, 0x60000000, 0x10 );
 			else								// EUR/USA
 				memset32( (void*)0x5634, 0x60000000, 0x10 );
@@ -2198,6 +2222,66 @@ void DoPatches( char *Buffer, u32 Length, u32 DiscOffset )
 					continue;
 				}
 			}
+		#if 0 // Should be safe, it's just that it hasn't come in handy yet
+			if (read32((u32)Buffer+i) == 0x3C60CC00 && read32((u32)Buffer+i+4) == 0x38632000 &&
+				read32((u32)Buffer+i+0xC) == 0xB0030002 && read32((u32)Buffer+i+0x14) == 0x57E31838)
+			{
+				// SuSo: If a disc read error occurs, pressing reset usually goes to a loop
+				if(IsWiiU()) {
+					write32((u32)Buffer+i,		  0x3D00CD80);
+					write32((u32)Buffer+i + 0x04, 0x610805E0);
+					write32((u32)Buffer+i + 0x08, 0x3C80FFFF);
+					write32((u32)Buffer+i + 0x0C, 0x6084FFFE);
+					write32((u32)Buffer+i + 0x10, 0x90880000);
+				} else {
+					write32((u32)Buffer+i,		  0x3C60CD80);
+					write32((u32)Buffer+i + 0x04, 0x80830194);
+					write32((u32)Buffer+i + 0x08, 0x60840020);
+					write32((u32)Buffer+i + 0x0C, 0x5484003E);
+					write32((u32)Buffer+i + 0x10, 0x90830194);
+				}
+				printpatchfound("DVD", "ReadError", (u32)Buffer+i);
+			}
+		#endif
+			if (read32((u32)Buffer+i) == 0x3D00CC00 && read32((u32)Buffer+i+4) == 0x61083000 &&
+				read32((u32)Buffer+i+0xC) == 0x90880024 && read32((u32)Buffer+i+0x10) == 0x90680024)
+			{
+				// SuSo: Replace GC console (hot reset) reboot command for Wii equivalent
+				// Fixes hang when B+X+Start is pressed in Sonic DX main menu
+				write32((u32)Buffer+i, 0x3D00CD80);
+				if(IsWiiU()) {
+					write32((u32)Buffer+i + 0x04, 0x610805E0);
+					write32((u32)Buffer+i + 0x08, 0x3C80FFFF);
+					write32((u32)Buffer+i + 0x0C, 0x6084FFFE);
+					write32((u32)Buffer+i + 0x10, 0x90880000);
+				} else {
+					write32((u32)Buffer+i + 0x04, 0x61080000);
+					write32((u32)Buffer+i + 0x0C, 0x90880194);
+					write32((u32)Buffer+i + 0x10, 0x90680194);
+				}
+				printpatchfound("Hot", "Reset", (u32)Buffer+i);
+			}
+			// Instead of crashing do a hot reset
+			if (read32((u32)Buffer+i) == 0x7C0004AC && read32((u32)Buffer+i+4) == 0x60000000 &&
+				read32((u32)Buffer+i+0xC) == 0x60000000 && read32((u32)Buffer+i+0x10) == 0x4BFFFFF4)
+			{
+				// Original code: 7C0004AC 60000000 38600000 60000000 4BFFFFF4
+				
+				// If not using native controls, jumping to the reset stub would be nicer
+				write32((u32)Buffer+i, 0x3D00CD80);
+				if(IsWiiU()) {
+					write32((u32)Buffer+i + 0x04, 0x610805E0);
+					write32((u32)Buffer+i + 0x08, 0x3C80FFFF);
+					write32((u32)Buffer+i + 0x0C, 0x6084FFFE);
+					write32((u32)Buffer+i + 0x10, 0x90880000);
+				} else {
+					write32((u32)Buffer+i + 0x04, 0x61080000);
+					write32((u32)Buffer+i + 0x08, 0x38800003);
+					write32((u32)Buffer+i + 0x0C, 0x90880194);
+					write32((u32)Buffer+i + 0x10, 0x90680194);
+				}
+				printpatchfound("Crash", "Handle", (u32)Buffer+i);
+			}
 			if (Datel)
 			{
 				if (BufAt0 == 0x7C0903A6 &&    // mtctr %r0
@@ -2280,6 +2364,10 @@ void DoPatches( char *Buffer, u32 Length, u32 DiscOffset )
 			continue;
 		}
 		i+=4;
+
+		// Account for padding between funcs
+		while (read32((u32)Buffer + i) == 0)
+			i += 4;
 
 		MPattern( (u8*)(Buffer+i), maxPatternSize, &curFunc );
 		/* only deal with functions with potentially correct function sizes */
@@ -2686,6 +2774,7 @@ void DoPatches( char *Buffer, u32 Length, u32 DiscOffset )
 									 (TITLE_ID) == 0x474D4F ||	// Micro Machines
 									 (TITLE_ID) == 0x475355 ||	// Superman: Shadow of Apokolips
 									 (TITLE_ID) == 0x474859 ||	// Disney's The Haunted Mansion
+									 (TITLE_ID) == 0x473442 ||	// Resident Evil 4
 									 DemoNeedsPaperMarioDMA())
 							{
 								memcpy( (void*)FOffset, ARStartDMA_PM, ARStartDMA_PM_size );
@@ -2989,7 +3078,20 @@ void DoPatches( char *Buffer, u32 Length, u32 DiscOffset )
 						case FCODE___DSPHandler:
 						{
 							if(useipl == 1) break;
-							if(read32(FOffset + 0xF8) == 0x2C000000)
+							
+							// Small __DSPHandler found in Super Mario Sunshine
+                            if (read32(FOffset + 0x280) == 0x28000000) {
+								if(DSPHandlerNeeded)
+								{
+                                    PatchBL(PatchCopy(__DSPHandler, __DSPHandler_size), (FOffset + 0x280));
+									printpatchfound(CurPatterns[j].Name, CurPatterns[j].Type, FOffset);
+								}
+								else
+								{
+									dbgprintf("Patch:[__DSPHandler] skipped (0x%08X)\r\n", FOffset);
+								}
+                            }
+							else if(read32(FOffset + 0xF8) == 0x2C000000)
 							{
 								if(DSPHandlerNeeded)
 								{
@@ -3392,6 +3494,120 @@ void DoPatches( char *Buffer, u32 Length, u32 DiscOffset )
 			dbgprintf("Patch:Patched Batman Vengeance PAL\r\n");
 		}
 	}
+	else if( TITLE_ID == 0x474C52 || GAME_ID == 0x4757584A ) // Star Wars Rebel Strike
+	{
+		// SuSo: code to make the game patch tlut
+		u32 rebelCopy[0x11] = { 0x3D208141, 0x3C003800, 0x61297610, 0x81290000, 0x7F890000,
+								0x40BE0028, 0x38000007, 0x3D208004, 0x7C0903A6, 0x61291FA4,
+								0x80090000, 0x3D69013D, 0x39290004, 0x900B566C, 0x4200FFF0,
+								0x38610008, 0x4E800020 };
+		
+		if(write32A(0x833C, 0x48039B41, 0x38610008, 0))
+		{
+			memcpy((void*)0x41E60, GXInitTlutObj, GXInitTlutObj_size);
+			rebelCopy[2]  = 0x61297864; // vmem
+			rebelCopy[9]  = 0x61291E60; // patched tlut
+			rebelCopy[13] = 0x900B5A04; // store
+			memcpy((void*)0x41E7C, rebelCopy, sizeof(rebelCopy));
+			dbgprintf("Patch:Patched Star Wars Rebel Strike NTSC-U\r\n");
+		}
+		else if(write32A(0x83D0, 0x48039BF1, 0x38610008, 0))
+		{
+			memcpy((void*)0x41FA4, GXInitTlutObj, GXInitTlutObj_size);
+			
+			if(GAME_ID == 0x4757584A) {
+				//81417610
+				dbgprintf("Patch:Patched Star Wars Rebel Strike NTSC-J\r\n");
+			}
+			else if(GAME_ID != 0x474C5245) {
+				//814177B0
+				rebelCopy[2]  = 0x612977B0; // vmem
+				rebelCopy[13] = 0x900B580C; // store
+				dbgprintf("Patch:Patched Star Wars Rebel Strike PAL\r\n");
+			}
+			else
+				dbgprintf("Patch:Patched Star Wars Rebel Strike NTSC-U rev 1\r\n");
+			
+			memcpy((void*)0x41FC0, rebelCopy, sizeof(rebelCopy));
+		}
+	}
+	else if( TITLE_ID == 0x475058 )	// Pokemon Box
+	{
+		// SuSo: Change PTE address to A0000000
+		if(write32A(0x85E28, 0x3C60A000, 0x3C609000, 0))
+		{
+			write32(0x879D4, 0x3C6000A0);
+			write32(0x879D8, 0x3C80A000);
+			
+			write32(0x87A38, 0x3CDFA000);
+			write32(0x87AF4, 0x3CDFA080);
+			write32(0x87BB4, 0x3CDFA0D0);
+			write32(0x87C70, 0x3CDFA0F0);
+			
+			dbgprintf("Patch:Patched Pokemon Box NTSC-U\r\n");
+		}
+		else if(write32A(0x87148, 0x3C60A000, 0x3C609000, 0))
+		{
+			write32(0x88D24, 0x3C6000A0);
+			write32(0x88D28, 0x3C80A000);
+			
+			write32(0x88D88, 0x3CDFA000);
+			write32(0x88E44, 0x3CDFA080);
+			write32(0x88F04, 0x3CDFA0D0);
+			write32(0x88FC0, 0x3CDFA0F0);
+			
+			dbgprintf("Patch:Patched Pokemon Box PAL\r\n");
+		}
+		else if(write32A(0x8682C, 0x3C60A000, 0x3C609000, 0))
+		{
+			write32(0x88318, 0x3C6000A0);
+			write32(0x8831C, 0x3C80A000);
+			write32(0x8837C, 0x3CDFA000);
+			dbgprintf("Patch:Patched Pokemon Box NTSC-J\r\n");
+		}
+		
+		useAGB = 4;
+	}
+	//else if( TITLE_ID == 0x554750 )
+	//{
+	
+		//{
+			//rev2
+			
+			//	dbgprintf("Patch:Rev2\r\n");
+			
+			//rev3
+			
+			//	dbgprintf("Patch:Rev3\r\n");
+			
+			// Load frame from storage
+			
+			
+			//dbgprintf("Patch:Patched Startup NTSC-U\r\n");
+		//}
+	//}
+	else if( TITLE_ID == 0x47354E )	// Namco Museum 50th
+	{
+		// Audio pops when starting any game, skip AIStartDMA
+		if(write32A(0x9F06C, 0x60000000, 0x4BFA130D, 0))
+		{
+			// Enable after the game has run through some frames
+			write32(0x71AD4, 0x4BFF043C); // jump to new code
+			write32(0x61F10, 0x3D20800B); // writes to mem a frame counter
+			write32(0x61F14, 0x6129BE04);
+			write32(0x61F18, 0x81690000);
+			write32(0x61F1C, 0x380B0001);
+			write32(0x61F20, 0x90090000);
+			write32(0x61F24, 0x80090000);
+			write32(0x61F28, 0x2F800006); // condition 6 frames
+			write32(0x61F2C, 0x40BE0008); // loop until cond is met
+			write32(0x61F30, 0x4BFDE449); // call AIStartDMA
+			write32(0x61F34, 0x8001000C); // og instruction
+			write32(0x61F38, 0x4800FBA0); // ret
+			
+			dbgprintf("Patch:Patched Namco Museum 50th NTSC-U\r\n");
+		}
+	}
 	else if( TITLE_ID == 0x474336 )	// Pokemon Colosseum
 	{
 		// Memory Card inserted hack
@@ -3503,6 +3719,94 @@ void DoPatches( char *Buffer, u32 Length, u32 DiscOffset )
 			PatchB( 0x00006950, 0x003191BC );
 		}*/
 	}
+	else if(read32(0x0005BCB0) == 0x4B617761 && read32(0x0005BCB4) == 0x7365646F) //kawasedo
+	{ //AGB emulator, type: Made in Wario
+		useAGB = 3;
+		
+		//dark filter removal, og is same as start-up disc 0xC8C8C8FF
+	//	write32(0x000958C0, 0xFFFFFFFF); //BG
+	//	write32(0x000958D4, 0xFFFFFFFF); //Game
+		
+		dbgprintf("Patch:Enabled AGB SRAM Support\r\n");
+	}
+	else if(read32(0x00065248) == 0x4B617761 && read32(0x0006524C) == 0x7365646F) //kawasedo
+	{
+		// AGB emulator, type: Ninja Council 2 (JP)
+		useAGB = 1;
+		
+		//dark filter removal, og is same as start-up disc 0xC8C8C8FF
+	//	write32(0x000A1A40, 0xFFFFFFFF); //BG
+	//	write32(0x000A1A4C, 0xFFFFFFFF); //Game
+		
+		dbgprintf("Patch:Enabled AGB SRAM Support\r\n");
+	}
+	else if(read32(0x00065148) == 0x4B617761 && read32(0x0006514C) == 0x7365646F) //kawasedo
+	{ //AGB emulator, type: Mario vs DK (US) from Interactive demo disc 16
+		//NOTE: though the retail game is flash, this uses a kiosk ROM with predetermined stuff
+		//it means that it's still the same SRAM-only emu as all other revisions.
+		useAGB = 2;
+		
+		// Disable demo reset timer
+		write32(0x0000833C, 0x60000000);
+		
+		//dark filter removal, og is same as start-up disc 0xC8C8C8FF
+	//	write32(0x000A1C60, 0xFFFFFFFF); //BG
+	//	write32(0x000A1C6C, 0xFFFFFFFF); //Game
+		
+		dbgprintf("Patch:Enabled AGB SRAM Support\r\n");
+	}
+	else if( TITLE_ID == 0x47534F )	// Sonic Mega Collection
+	{
+		if(read32(0) == 0x47534F45) //NTSC-U
+		{
+			useGenesis = 1;
+			
+			//Ring Giver
+			//useRings = 1;
+		}
+	}
+#if 0
+	else if( TITLE_ID == 0x473953 || TITLE_ID == 0x475550)	// Sonic Heroes, Shadow
+	{
+		if(read32(0) == 0x47395345 || read32(0) == 0x47555045) //NTSC-U Heroes, Shadow
+		{
+			useRings = 1;
+		}
+	}
+#endif
+/*	else if( TITLE_ID == 0x475853 )	// Sonic DX
+	{
+		if(read32(0x000406D0) == 0x3D00CC00)
+		{
+			write32(0x000406D0, 0x3D00CD80);
+			write32(0x000406D4, 0x61080000);
+			write32(0x000406DC, 0x90880194);
+			write32(0x000406E0, 0x90680194);
+			dbgprintf("Patch:Patched SADX reset NTSC-U\r\n");
+		}
+	}
+	else if( TITLE_ID == 0x474253 )	// Crash on selecting manage memory card
+	{
+		if(read32(0x000C91BC) == 0x3D00CC00)
+		{
+			write32(0x000C91BC, 0x3D00CD80);
+			write32(0x000C91C0, 0x61080000);
+			write32(0x000C91C8, 0x90880194);
+			write32(0x000C91CC, 0x90680194);
+			dbgprintf("Patch:Patched Beach Spikers HOTRESET NTSC-U\r\n");
+		}
+	}
+	else if( TITLE_ID == 0x474146 )	// Animal Crossing
+	{
+		if(read32(0x0007C988) == 0x3D00CC00)
+		{
+			write32(0x0007C988, 0x3D00CD80);
+			write32(0x0007C98C, 0x61080000);
+			write32(0x0007C994, 0x90880194);
+			write32(0x0007C998, 0x90680194);
+			dbgprintf("Patch:Patched AC reset NTSC-U\r\n");
+		}
+	} */
 	else if( TITLE_ID == 0x475832 )	// X-Men Legends 2
 	{
 		//Fix a Bad Jump in the code
@@ -3562,7 +3866,7 @@ void DoPatches( char *Buffer, u32 Length, u32 DiscOffset )
 			dbgprintf("Patch:Patched Nintendo Puzzle Collection NTSC-J\r\n");
 		}
 	}
-	else if( TITLE_ID == 0x44504F ) //PSO Demo JAP
+	else if( TITLE_ID == 0x44504F ) //PSO Demo JPN
 	{
 		//skip modem detection error to let demo boot up
 		if(write32A(0x194F40, 0x4182002C, 0x4082002C, 0))
@@ -3588,6 +3892,27 @@ void DoPatches( char *Buffer, u32 Length, u32 DiscOffset )
 			dbgprintf("Patch:Patched GameCube Service Disc NTSC-U\r\n");
 		}
 	}
+	dbgprintf("Patch:MEM2 cache is 0x%X.\r\n", read32(0x12000000));
+	if(read32(0x12000000) != 0) { //we have codes ready for writing
+		int count = read32(0x12000000);
+		int c = 0;
+		//for(c = 0; c < count; ++c)
+		//	write32(read32(0x12000004+(c*8)), read32(0x12000008+(c*8)));
+		
+		for(c = 0; c < count; ++c) {
+			// Check for conditionals
+			if((read32(0x12000004+(c*8)) & 1) == 1) {
+				if(*(u32*)((read32(0x12000004+(c*8))) & ~1) == read32(0x12000008+(c*8)))
+					write32(read32(0x1200000C+(c*8)), read32(0x12000010+(c*8)));
+				++c; // Skip next set
+				continue;
+			} else
+				write32(read32(0x12000004+(c*8)), read32(0x12000008+(c*8)));
+		}
+		
+		//dbgprintf("Patch:MEM2 wrote 0x%X.\r\n", c);
+		//dbgprintf("CheckZATCH 0x%X.\r\n", read32(0x2C00) );
+	}
 	if(videoPatches)
 	{
 		bool video60hzPatch = false;
@@ -3600,14 +3925,14 @@ void DoPatches( char *Buffer, u32 Length, u32 DiscOffset )
 					|| NinForceMode == NIN_VID_FORCE_MPAL)
 				video60hzPatch = true; //480i 60hz
 		}
-		if( TITLE_ID == 0x47454F ) // Capcom vs. SNK 2 EO
+		if(write32A(0x11224, 0x60000000, 0xB0010010, 0))
+		{
+			dbgprintf("Patch:Patched Capcom vs. SNK 2 EO NTSC-J\r\n");
+		}
+		else if(write32A(0x1137C, 0x60000000, 0xB0010010, 0))
 		{
 			//fix for force progressive
-			if(write32A(0x11224, 0x60000000, 0xB0010010, 0))
-			{
-				dbgprintf("Patch:Patched Capcom vs. SNK 2 EO NTSC-J\r\n");
-			}
-			else if(write32A(0x1137C, 0x60000000, 0xB0010010, 0))
+			if(write32A(0x1137C, 0x60000000, 0xB0010010, 0))
 			{
 				dbgprintf("Patch:Patched Capcom vs. SNK 2 EO NTSC-U\r\n");
 			}
@@ -3772,9 +4097,9 @@ void PatchGame()
 	DoPatches( (void*)DOLMinOff, FullLength, 0 );
 	// Some games need special timings
 	EXISetTimings(TITLE_ID, GAME_ID & 0xFF);
-	// Init Cache if its a new ISO
-	if(TRIGame != TRI_SB)
-		ISOSetupCache();
+#if 1
+	ISOSetupCache();
+#endif
 	// Reset SI status
 	SIInit();
 	u32 SiInitSet = 0;

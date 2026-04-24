@@ -397,7 +397,8 @@ void PatchStaticTimers()
 	else if(memcmp((void*)0x263130, smc_arr_gc, sizeof(smc_arr_gc)) == 0)
 	{
 		memcpy((void*)0x263130, smc_arr_wii, sizeof(smc_arr_wii));
-		write32(0x3FF368, 0x3FB0393E); //base value of 1.3767469 again
+		//write32(0x3FF368, 0x3FB0393E); //base value of 1.3767469 again
+		write32(0x3FF368, 0x3FB03A44);
 		#ifdef DEBUG_PATCH
 		dbgprintf("PatchTimers:[Sonic Mega Collection NTSC-U] applied\r\n");
 		#endif
@@ -405,7 +406,8 @@ void PatchStaticTimers()
 	else if(memcmp((void*)0x264B08, smc_arr_gc, sizeof(smc_arr_gc)) == 0)
 	{
 		memcpy((void*)0x264B08, smc_arr_wii, sizeof(smc_arr_wii));
-		write32(0x401388, 0x3FB0393E); //base value of 1.3767469 again
+		//write32(0x401388, 0x3FB0393E); //base value of 1.3767469 again
+		write32(0x401388, 0x3FB03A44);
 		#ifdef DEBUG_PATCH
 		dbgprintf("PatchTimers:[Sonic Mega Collection NTSC-J] applied\r\n");
 		#endif
@@ -414,7 +416,8 @@ void PatchStaticTimers()
 	{
 		memcpy((void*)0x281508, smc_arr_wii, sizeof(smc_arr_wii));
 		memcpy((void*)0x281534, smc_pal50_arr_wii, sizeof(smc_pal50_arr_wii));
-		write32(0x41FCE0, 0x3FB0393E); //base value of 1.3767469 again
+		//write32(0x41FCE0, 0x3FB0393E); //base value of 1.3767469 again
+		write32(0x41FCE0, 0x3FB03A44);
 		#ifdef DEBUG_PATCH
 		dbgprintf("PatchTimers:[Sonic Mega Collection PAL] applied\r\n");
 		#endif
@@ -422,7 +425,8 @@ void PatchStaticTimers()
 	else if(read32(0x3F2DE0) == 0x3FB0147B)
 	{
 		//proto didnt have dynamic resample yet
-		write32(0x3F2DE0, 0x3FB0393E); //base value of 1.3767469
+		//write32(0x3F2DE0, 0x3FB0393E); //base value of 1.3767469
+		write32(0x3F2DE0, 0x3FB03A44);
 		#ifdef DEBUG_PATCH
 		dbgprintf("PatchTimers:[Sonic Mega Collection Proto NTSC-U] applied\r\n");
 		#endif
