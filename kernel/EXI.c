@@ -34,7 +34,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "ff_utf8.h"
 
 #define EXI_IRQ_INSTANT		0		// as soon as possible
-#define EXI_IRQ_DEFAULT		1900	// about 1000 times a second
+#define EXI_IRQ_DEFAULT		950		// about 2000 times a second
 #define EXI_IRQ_SLOW		3800	// about 500 times a second
 
 static u32 CurrentTiming = EXI_IRQ_DEFAULT;
@@ -168,6 +168,10 @@ void EXISetTimings(u32 TitleID, u32 Region)
 	else
 	{
 		CurrentTiming = EXI_IRQ_DEFAULT;
+		
+		//override delay
+		if(ncfg->CardDelay < 5000)
+			CurrentTiming = ncfg->CardDelay;
 	}
 #ifdef DEBUG_PATCH
 	dbgprintf("Patch:Using a EXI Timing of %i\n", CurrentTiming);
