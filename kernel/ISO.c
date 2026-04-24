@@ -35,7 +35,14 @@ u32 ISOFileOpen = 0;
 
 #define CACHE_MAX		0x400
 #define CACHE_START		(u8*)0x11000000
-#define CACHE_SIZE		0x1E80000
+//#define CACHE_SIZE		0x1E80000
+#define CACHE_SIZE		0x300000
+
+#undef USE_NAND
+
+#ifdef USE_NAND
+static s32 fd = 0;
+#endif
 
 typedef struct
 {
@@ -95,7 +102,11 @@ static inline void ISOReadDirect(void *Buffer, u32 Length, u64 Offset64)
 			if(wiiVCInternal)
 				WDVD_FST_LSeek( Offset64 );
 			else
+#ifdef USE_NAND
+				IOS_Seek(fd, Offset64, 0);
+#else
 				f_lseek( &GameFile, Offset64 );
+#endif
 		}
 		if(wiiVCInternal)
 		{
@@ -103,7 +114,11 @@ static inline void ISOReadDirect(void *Buffer, u32 Length, u64 Offset64)
 			read = WDVD_FST_Read( Buffer, Length );
 		}
 		else
+#ifdef USE_NAND
+			IOS_Read(fd, Buffer, Length);
+#else
 			f_read( &GameFile, Buffer, Length, &read );
+#endif
 	}
 	else
 	{
@@ -269,11 +284,21 @@ bool ISOInit()
 	}
 	else
 	{
+#ifdef USE_NAND
+		s32 fd = IOS_Open("/title/00010001/47414645/content/00000002.app", IPC_OPEN_READ);
+		if(fd < 0) {
+			dbgprintf("ISO:No game found.\r\n");
+			return false;
+		}
+#else
 		s32 ret = f_open_char( &GameFile, ConfigGetGamePath(), FA_READ|FA_OPEN_EXISTING );
+
 		if( ret != FR_OK )
 			return false;
+#endif
 
 #if _USE_FASTSEEK
+#ifndef USE_NAND
 		/* Setup table */
 		u32 tblsize = 4; //minimum default size
 		GameFile.cltbl = malloc(tblsize * sizeof(DWORD));
@@ -288,6 +313,7 @@ bool ISOInit()
 			GameFile.cltbl[0] = tblsize;
 			f_lseek(&GameFile, CREATE_LINKMAP);
 		}
+#endif
 #endif /* _USE_FASTSEEK */
 	}
 
@@ -372,11 +398,15 @@ void ISOClose()
 			WDVD_FST_Close();
 		else
 		{
+#ifdef USE_NAND
+			IOS_Close(fd);
+#else
 			f_close( &GameFile );
 #if _USE_FASTSEEK
 			free(GameFile.cltbl);
 			GameFile.cltbl = NULL;
 #endif /* _USE_FASTSEEK */
+#endif
 		}
 	}
 	ISOFileOpen = 0;
@@ -385,6 +415,10 @@ void ISOClose()
 
 void ISOSetupCache()
 {
+#ifdef USE_NAND
+	return;
+#endif
+
 	if(ISOFileOpen == 0 || CacheInited)
 		return;
 
@@ -448,7 +482,11 @@ void ISOSeek(u32 Offset)
 			if(wiiVCInternal)
 				WDVD_FST_LSeek( Offset64 );
 			else
+#ifdef USE_NAND
+				IOS_Seek(fd, Offset64, 0);
+#else
 				f_lseek( &GameFile, Offset64 );
+#endif
 		}
 		LastOffset64 = Offset64;
 	}
