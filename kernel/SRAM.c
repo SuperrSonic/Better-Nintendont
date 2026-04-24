@@ -72,7 +72,7 @@ void SRAM_Init(void)
 	sram.BootMode &= ~0x40;	// Clear PAL60
 	sram.Flags    &= ~0x80;	// Clear Progmode
 	sram.Flags    &= ~3;	// Clear Videomode
-	sram.DisplayOffsetH = 0;
+	sram.DisplayOffsetH = ncfg->SramOffset;
 	sram.Language = ConfigGetLanguage();
 
 	// Apply settings based on the actual game region.
@@ -100,7 +100,7 @@ void SRAM_Init(void)
 		// BMX XXX, since that game won't even boot on a real
 		// GameCube if a component cable is connected.
 		if ((ncfg->GameID >> 8) != 0x474233 && !spPopWW &&
-			(ncfg->VideoMode & NIN_VID_PROG))
+			(ncfg->VideoMode & NIN_VID_PROG) && !ncfg->SkipProgAsk)
 		{
 			sram.Flags |= 0x80;
 		}
