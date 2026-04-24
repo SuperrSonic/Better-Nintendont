@@ -28,7 +28,7 @@
 //#define DEBUG_TIME 1
 
 #define REGION_ID_USA	0x45
-#define REGION_ID_JAP	0x4A
+#define REGION_ID_JPN	0x4A
 #define REGION_ID_EUR	0x50
 
 #define UINT_MAX ((unsigned int)0xffffffff)
@@ -158,6 +158,8 @@ typedef s32(*ipccallback)(s32 result,void *usrdata);
 #define HW_GPIO_DIR		(HW_BASE+0xE4)
 #define HW_GPIO_IN		(HW_BASE+0xE8)
 #define HW_GPIO_OWNER	(HW_BASE+0xFC)
+
+#define HW_RESETS (0xd800000 + 0x194)
 
 #define GPIO_POWER		(1<<0)
 #define GPIO_SHUTDOWN	(1<<1)
@@ -338,6 +340,18 @@ static inline void sync_after_write_align32(void *Buf, u32 Len)
 	u32 LenDiff = (u32)Buf - (u32)BufA;
 	sync_after_write(BufA, ALIGN_FORWARD(Len + LenDiff, 0x20));
 }
+
+// For AGB Emulator to load/save data
+void AGB_Load(void);
+void AGB_Save(void);
+
+// Reads Genesis ROM from device
+void SMC_Load(char* title, u8 posValue);
+
+//debug
+void DumpSAILORMOON(void);
+
+void UpdatePlaylog(void);
 
 #define RESET_STATUS 0x13003420
 

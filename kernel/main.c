@@ -1,6 +1,6 @@
 /*
 
-Nintendont (Kernel) - Playing Gamecubes in Wii mode on a Wii U
+Nintendont (Kernel) - GameCube loader for Wii
 
 Copyright (C) 2013  crediar
 
@@ -47,12 +47,72 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //#undef DEBUG
 bool access_led = false;
 u32 USBReadTimer = 0;
+u32 Reboot = 0;
 extern u32 s_size;
 extern u32 s_cnt;
 
 static FATFS *fatfs = NULL;
 //this is just a single / as u16, easier to write in hex
 static const WCHAR fatDevName[2] = { 0x002F, 0x0000 };
+
+// Moved to kernel/global.h
+//#define HW_RESETS (0xd800000 + 0x194)
+
+//#define SMC_DAT 0x003FCA68
+//u32 retriesFix = 0;
+
+static bool copySafe = false;
+static u16 sramShift = 0;
+static const u32 gameSTR = 0x696CA4;
+static const u32 romLimit = 0x500000;
+//static u32 recGame = 0;
+
+static char SMC_DAT[14][16] =
+{
+	"meanbean.bin",
+	"flicky.bin",
+	"bluesphere.bin",
+	"ksonic2.bin",
+	"sonic3k.bin",
+	"ristar.bin",
+	"sonic1.bin",
+	"sonic2.bin",
+	"sonic3.bin",
+	"sonic3d.bin",
+	"spinball.bin",
+	"sandk.bin",
+	"sonic1j.bin", //unused by game
+	"sonic1u.bin"
+};
+
+void CopyROM(void)
+{
+	// TODO: test if MEM1 could be used because it would allow loading even faster
+	sync_before_read((void*)(0x903824 - sramShift), 0x20);
+	if(read32(0x903824 - sramShift) == 0x52495354) { // Ristar loaded
+		sync_before_read((void*)0x11200010, 4*1024*1024);
+		memcpy((void*)(0x00903700 - sramShift), (void*)0x11200010, read32(0x11200000));
+		sync_after_write((void*)(0x00903700 - sramShift), 4*1024*1024);
+		//sramShift = 0;
+		copySafe = false;
+	}
+}
+
+void SysReset( void )
+{
+	if(IsWiiU())
+		write32( 0x0D8005E0, 0xFFFFFFFE );
+	
+	write32( HW_RESETS, (read32( HW_RESETS ) | 0x20 ) & (~1) );
+}
+
+bool AGB_Loaded = false;
+extern u32 useAGB;
+u32 AGBTimer = 0;
+
+extern u32 useGenesis;
+
+//bool skipMCE = false;
 
 extern u32 SI_IRQ;
 extern bool DI_IRQ, EXI_IRQ;
@@ -273,6 +333,9 @@ int _main( int argc, char *argv[] )
 	USBReadTimer = Now;
 	u32 Reset = 0;
 	bool SaveCard = false;
+	Reboot = Now;
+	bool reboot_now = false;
+	AGBTimer = Now;
 
 	//enable ios led use
 	access_led = ConfigGetConfig(NIN_CFG_LED);
@@ -368,12 +431,184 @@ int _main( int argc, char *argv[] )
 		}
 		else if(SaveCard == true) /* DI IRQ indicates we might read async, so dont write at the same time */
 		{
-			if(TimerDiffSeconds(Now) > 2) /* after 3 second earliest */
+			if(TimerDiffSeconds(Now) > 59) /* after 60 second earliest */
 			{
 				GCNCard_Save();
 				SaveCard = false;
 			}
 		}
+#if 1
+		else if(useAGB && !AGB_Loaded && TimerDiffSeconds(AGBTimer) > 5)
+		{
+			// Load AGB SRAM
+			AGB_Load();
+			AGB_Loaded = true;
+		}
+#endif
+#if 0
+		else if(useRings)
+		{
+			// nah, better handle this with a compile flag and keep using pad hook
+			if(read32(0) == 0x) //Heroes
+				;
+		}
+#endif
+#if 1
+		else if(useGenesis)
+		{
+			// Now for detecting roms embedded in Flicky
+			// read32 0x691C00 to jump to the read encrypted ROM
+			// so instead + sizeof(flicky.dat)
+			// this embedded data should include a bool and a size for speeding up memcpy
+			// NOTE: it's possible the game only copies 0x40ED18 bytes
+			// This idea didn't work well enough...
+		#if 0
+			sync_before_read((void*)0x6A09C0, 0x20);
+			if((read32(0x6A09C4) == 1) && (read32(0x6A09C0) == 0x434F5059)) {
+				//we have a bundled ROM
+			/*
+				u32 ptrROM = 0;
+				
+				sync_before_read((void*)0x3FCA68, 0x20);
+				ptrROM = read32(0x3FCA68);
+				ptrROM &= 0x00FFFFFF;
+				
+				ptrROM += 0x2C;
+				
+				sync_before_read((void*)ptrROM, 0x20);
+				ptrROM = read32(ptrROM);
+				ptrROM &= 0x00FFFFFF;
+				
+				ptrROM += 4;
+				
+				sync_before_read((void*)ptrROM, 0x20);
+				ptrROM = read32(ptrROM);
+				ptrROM &= 0x00FFFFFF;
+				*/
+			/*	u32 ptrROM = SMC_DAT;
+				
+				sync_before_read((void*)SMC_DAT, 0x20);
+				ptrROM = read32(SMC_DAT);
+				
+				ptrROM += 0x2C;
+				ptrROM &= 0x0FFFFFFF;
+				
+				sync_before_read((void*)ptrROM, 0x20);
+				ptrROM = read32(ptrROM);
+				
+				ptrROM += 4;
+				ptrROM &= 0x0FFFFFFF;
+				
+				sync_before_read((void*)ptrROM, 0x20);
+				ptrROM = read32(ptrROM);
+				ptrROM &= 0x0FFFFFFF;
+				
+				u32 chrID = ptrROM + 0x160; */
+				
+				sync_before_read((void*)0xB621E0, 0x20);
+				if(read32(0xB621E0) == 0x464C4943) { // FLIC
+					u32 szROM = read32(0x6A09CC);
+					if(szROM > 4*1024*1024)
+						szROM = 4*1024*1024;
+					sync_before_read((void*)0x6A09D0, szROM);
+					memcpy((void*)0xB620C0, (void*)0x6A09D0, szROM);
+					sync_after_write((void*)0xB620C0, szROM);
+					
+					// no longer need to copy
+					write32(0x6A09C4, 0);
+					sync_after_write((void*)0x6A09C4, 0x20);
+					
+					
+				//	clear32(HW_GPIO_OUT, GPIO_SLOT_LED);
+					
+					//dump mem to find out why it's not working!
+				//	DumpSAILORMOON();
+				}
+			} else
+			#endif
+			{
+				//0x8FF6C0 = Ristar in Sonic3 or S3&K
+				//0x2F83F8 = title selected
+			#if 1
+				sync_before_read((void*)0x696C94, 0x20);
+				if(read32(0x696C94) == 0x800300)
+					copySafe = false;
+				
+				if(!copySafe) {
+					sramShift = 0;
+					sync_before_read((void*)0x2AF0C4, 0x40);
+					//sync_before_read((void*)gameSTR, 0x20);
+					
+					if((read32(0x2AF0DC) < romLimit) && (read32(gameSTR) == 0x802407D8)) { //sonic1
+						//also has sonic 1 US, gonna have to ignore it
+						SMC_Load(SMC_DAT[6], 6);
+						copySafe = true;
+					}
+					else if((read32(0x2AF0E0) < romLimit) && (read32(gameSTR) == 0x80240A6C)) { //sonic2
+						SMC_Load(SMC_DAT[7], 7);
+						copySafe = true;
+					}
+					else if((read32(0x2AF0C4 + (8*4)) < romLimit) && (read32(gameSTR) == 0x80240C68)) { //sonic3
+						SMC_Load(SMC_DAT[8], 8);
+						copySafe = true;
+						sramShift = 0x4040;
+					}
+					else if((read32(0x2AF0C4 + (11*4)) < romLimit) && (read32(gameSTR) == 0x80240F50)) { //sonicknuckles
+						SMC_Load(SMC_DAT[11], 11);
+						copySafe = true;
+					}
+					else if((read32(0x2AF0C4 + (2*4)) < romLimit) && (read32(gameSTR) == 0x802411C8)) { //bluesphere
+						SMC_Load(SMC_DAT[2], 2);
+						copySafe = true;
+					}
+					else if((read32(0x2AF0C4 + (3*4)) < romLimit) && (read32(gameSTR) == 0x80241460)) { //knuckles2
+						SMC_Load(SMC_DAT[3], 3);
+						copySafe = true;
+					}
+					else if((read32(0x2AF0C4 + (4*4)) < romLimit) && (read32(gameSTR) == 0x802415DC)) { //sonic3&k
+						SMC_Load(SMC_DAT[4], 4);
+						copySafe = true;
+						sramShift = 0x4040;
+					}
+					else if((read32(0x2AF0C4 + (9*4)) < romLimit) && (read32(gameSTR) == 0x80241884)) { //sonic3d
+						SMC_Load(SMC_DAT[9], 9);
+						copySafe = true;
+					}
+					else if((read32(0x2AF0C4 + (10*4)) < romLimit) && (read32(gameSTR) == 0x80241A20)) { //spinball
+						SMC_Load(SMC_DAT[10], 10);
+						copySafe = true;
+					}
+					else if((read32(0x2AF0C4) < romLimit) && (read32(gameSTR) == 0x80241BB4)) { //meanbean
+						SMC_Load(SMC_DAT[0], 0);
+						copySafe = true;
+					}
+					else if((read32(0x2AF0C4 + 4) < romLimit) && (read32(gameSTR) == 0x80241CDC)) { //flicky
+						SMC_Load(SMC_DAT[1], 1);
+						copySafe = true;
+					}
+					else if((read32(0x2AF0C4 + (5*4)) < romLimit) && (read32(gameSTR) == 0x80241F88)) { //ristar
+						SMC_Load(SMC_DAT[5], 5);
+						copySafe = true;
+					}
+				} else if(copySafe)
+					CopyROM();
+			#endif
+				
+				// This works
+			#if 0
+				sync_before_read((void*)0x903824, 0x20);
+				if(read32(0x903824) == 0x52495354) { // Ristar loaded
+					sync_before_read((void*)0x11200010, 4*1024*1024);
+					memcpy((void*)0x00903700, (void*)0x11200010, read32(0x11200000));
+					sync_after_write((void*)0x00903700, 4*1024*1024);
+					
+					//test mem
+				//	DumpSAILORMOON();
+				}
+			#endif
+			}
+		}
+#endif
 		else if(UseUSB && TimerDiffSeconds(USBReadTimer) > 149) /* Read random sector every 2 mins 30 secs */
 		{
 			DIFinishAsync(); //if something is still running
@@ -448,6 +683,9 @@ int _main( int argc, char *argv[] )
 		vu32 reset_status = read32(RESET_STATUS);
 		if (reset_status == 0x1DEA)
 		{
+		//	sync_before_read((void*)0x1093A990, 0x20);
+		//	dbgprintf("RebelStrikeVM 0x%08X\n", read32(0x1093A990));
+			
 			dbgprintf("Game Exit\r\n");
 			DIFinishAsync();
 			break;
@@ -493,13 +731,36 @@ int _main( int argc, char *argv[] )
 			write32(RESET_STATUS, 0);
 			sync_after_write((void*)RESET_STATUS, 0x20);
 		}
+		if(reboot_now == true && TimerDiffSeconds(Reboot) > 5)
+		{
+			/* One can still recover from certain types of crashes
+			 * by using hw to exit instead of the reset stub. */
+			//if( ConfigGetConfig(NIN_CFG_MEMCARDEMU) )
+				//EXIShutdown();
+			SysReset();
+		}
+	/*	if(reset_status == 0x7DEB) {
+			skipMCE = true;
+			write32(RESET_STATUS, 0x7DEA);
+			sync_after_write((void*)RESET_STATUS, 0x20);
+		}*/
 		if(reset_status == 0x7DEA || (read32(HW_GPIO_IN) & GPIO_POWER))
 		{
-			DIFinishAsync();
-			#ifdef PATCHALL
-			BTE_Shutdown();
-			#endif
-			Shutdown();
+			if(ConfigGetConfig(NIN_CFG_NATIVE_SI)) {
+				DIFinishAsync();
+				//#ifdef PATCHALL
+				//BTE_Shutdown(); // If this reset is only for native, why shutdown bt
+				//#endif
+				//Shutdown(); // Forcibly shutting down is dumb
+				if( ConfigGetConfig(NIN_CFG_MEMCARDEMU) )
+					EXIShutdown();
+				SysReset();
+			} else {
+				write32(RESET_STATUS, 0x9DEA);
+				sync_after_write((void*)RESET_STATUS, 0x20);
+				reboot_now = true;
+				Reboot = read32(HW_TIMER);
+			}
 		}
 		#ifdef USE_OSREPORTDM
 		sync_before_read( (void*)0x1860, 0x20 );
@@ -526,7 +787,13 @@ int _main( int argc, char *argv[] )
 	thread_cancel(DI_Thread, 0);
 	DIUnregister();
 
-	if( ConfigGetConfig(NIN_CFG_MEMCARDEMU) )
+	// Message Board playrecord
+	UpdatePlaylog();
+
+	if(useAGB && AGB_Loaded)
+		AGB_Save();
+
+	if(ConfigGetConfig(NIN_CFG_MEMCARDEMU))
 		EXIShutdown();
 
 	if (ConfigGetConfig(NIN_CFG_LOG))
