@@ -84,74 +84,74 @@ _main(void)
 	//*(vu32*)(0xCC002008) |= 1 << 0;
 
 
-			// This replicates VISetBlack which calls __setVerticalRegs
-			u32 vto = 0;
-			u32 vte = 0;
-			u8 equ = *(vu16*)(0xCC002000) & 0xF;
-			u16 acv = *(vu16*)(0xCC002000) >> 4;
-			u16 dispSizeY = 0;
-			u16 dispPosY = 0;
-			u16 psbOdd  = *(vu32*)(0xCC00200C) >> 16;
-			u16 psbEven = *(vu32*)(0xCC002010) >> 16;
-			u16 prbOdd  = *(vu16*)(0xCC00200E);
-			u16 prbEven = *(vu16*)(0xCC002012);
-			
-			u16 tmp;
-			u32 div1,div2;
-			u32 psb,prb;
-			u32 psbodd,prbodd;
-			u32 psbeven,prbeven;
+	// This replicates VISetBlack which calls __setVerticalRegs
+	u32 vto = 0;
+	u32 vte = 0;
+	u8 equ = *(vu16*)(0xCC002000) & 0xF;
+	u16 acv = *(vu16*)(0xCC002000) >> 4;
+	u16 dispSizeY = 0;
+	u16 dispPosY = 0;
+	u16 psbOdd  = *(vu32*)(0xCC00200C) >> 16;
+	u16 psbEven = *(vu32*)(0xCC002010) >> 16;
+	u16 prbOdd  = *(vu16*)(0xCC00200E);
+	u16 prbEven = *(vu16*)(0xCC002012);
+	
+	u16 tmp;
+	u32 div1,div2;
+	u32 psb,prb;
+	u32 psbodd,prbodd;
+	u32 psbeven,prbeven;
 
-			div1 = 2;
-			div2 = 1;
-			if(equ>=10) {
-				div1 = 1;
-				div2 = 2;
-			}
+	div1 = 2;
+	div2 = 1;
+	if(equ>=10) {
+		div1 = 1;
+		div2 = 2;
+	}
 
-			prb = div2*dispPosY;
-			psb = div2*(((acv*div1)-dispSizeY)-dispPosY);
-			if(dispPosY%2) {
-				prbodd = prbEven+prb;
-				psbodd = psbEven+psb;
-				prbeven = prbOdd+prb;
-				psbeven = psbOdd+psb;
-			} else {
-				prbodd = prbOdd+prb;
-				psbodd = psbOdd+psb;
-				prbeven = prbEven+prb;
-				psbeven = psbEven+psb;
-			}
+	prb = div2*dispPosY;
+	psb = div2*(((acv*div1)-dispSizeY)-dispPosY);
+	if(dispPosY%2) {
+		prbodd = prbEven+prb;
+		psbodd = psbEven+psb;
+		prbeven = prbOdd+prb;
+		psbeven = psbOdd+psb;
+	} else {
+		prbodd = prbOdd+prb;
+		psbodd = psbOdd+psb;
+		prbeven = prbEven+prb;
+		psbeven = psbEven+psb;
+	}
 
-			tmp = dispSizeY/div1;
-		//if(black) {
-			prbodd += ((tmp<<1)-2);
-			prbeven += ((tmp<<1)-2);
-			psbodd += 2;
-			psbeven += 2;
-			tmp = 0;
-		//}
-			
-			u8 sum = (prbodd & 0xF0) >> 4;
-			u8 sum2 = (psbodd & 0xF0) >> 4;
-			prbodd |= (sum + sum2) << 4;
-			u8 move = psbodd >> 8;
-			prbodd |= move << 8;
-    		psbodd &= 0xF;
-			vto = prbodd | psbodd << 16;
-			
-			//other field
-			sum = (prbeven & 0xF0) >> 4;
-			sum2 = (psbeven & 0xF0) >> 4;
-			prbeven |= (sum + sum2) << 4;
-			move = psbeven >> 8;
-			prbeven |= move << 8;
-		    psbeven &= 0xF;
-			vte = prbeven | psbeven << 16;
-			
-			*(vu32*)(0xCC002000) &= 0x000FFFFF;
-			*(vu32*)(0xCC00200C) = vto;
-			*(vu32*)(0xCC002010) = vte;
+	tmp = dispSizeY/div1;
+	//if(black) {
+	prbodd += ((tmp<<1)-2);
+	prbeven += ((tmp<<1)-2);
+	psbodd += 2;
+	psbeven += 2;
+	tmp = 0;
+	//}
+
+	u8 sum = (prbodd & 0xF0) >> 4;
+	u8 sum2 = (psbodd & 0xF0) >> 4;
+	prbodd |= (sum + sum2) << 4;
+	u8 move = psbodd >> 8;
+	prbodd |= move << 8;
+ 	psbodd &= 0xF;
+	vto = prbodd | psbodd << 16;
+
+	//other field
+	sum = (prbeven & 0xF0) >> 4;
+	sum2 = (psbeven & 0xF0) >> 4;
+	prbeven |= (sum + sum2) << 4;
+	move = psbeven >> 8;
+	prbeven |= move << 8;
+    psbeven &= 0xF;
+	vte = prbeven | psbeven << 16;
+
+	*(vu32*)(0xCC002000) &= 0x000FFFFF;
+	*(vu32*)(0xCC00200C) = vto;
+	*(vu32*)(0xCC002010) = vte;
 
 
 	// Height info, might be useful for screenshot feature
