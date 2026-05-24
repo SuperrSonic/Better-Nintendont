@@ -23,7 +23,11 @@ typedef struct NIN_CFG
 	unsigned char		MemCardBlocks;
 	signed char			VideoScale;
 	signed char			VideoOffset;
-	unsigned char		Unused;
+	signed int          SramOffset;
+	unsigned int		SkipProgAsk;
+	unsigned int		SkipPlaylog;
+	unsigned int		CardDelay;
+	//unsigned char		Unused;
 } NIN_CFG;
 
 enum ninconfigbitpos
