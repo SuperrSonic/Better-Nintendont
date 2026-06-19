@@ -65,6 +65,7 @@ static vu32* isSMC       = (vu32*)0x802AD6D0; //constant value to determine game
 //static u8 forcePlayer = 0; // invalid value, so it first picks a free slot
 static vu32* P1force = (vu32*)0x932F0094;
 static vu32* wiiPort = (vu32*)0x932F0098;
+static vu32* CCDirect = (vu32*)0x932F009C;
 
 static vu32* PADIsBarrel = (vu32*)0xD3003130;
 static vu32* PADBarrelEnabled = (vu32*)0xD3003140;
@@ -78,7 +79,6 @@ static vu32* PADSwitchRequired = (vu32*)0x93003064;
 static vu32* PADForceConnected = (vu32*)0x93003068;
 static vu32* drcAddress = (vu32*)0x9300306C;
 static vu32* drcAddressAligned = (vu32*)0x93003070;
-static vu32* CCDirect = (vu32*)0x93003074;
 
 static u32 PrevAdapterChannel1 = 0;
 static u32 PrevAdapterChannel2 = 0;
