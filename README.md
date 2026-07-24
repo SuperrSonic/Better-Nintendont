@@ -4,7 +4,7 @@ After years of working on this on and off, I think it's finally in a state that 
 
 # New stuff
 
-* Path-based argument support
+* Path-based argument loading
 * Sideways Wii Remote
 * Blacks out when exiting
 * Power button exits game
@@ -25,6 +25,7 @@ After years of working on this on and off, I think it's finally in a state that 
 * Namco Museum 50th Anniversary - Loading into games no longer has a pop sound.
 * Sonic Riders - The delay patch is adjusted to the absolute limit.
 
+
 # GBA Emulator Saving
 
 * The emulator required is from Interactive Multi-Game Demo Disc v16, other versions may work.
@@ -34,7 +35,6 @@ After years of working on this on and off, I think it's finally in a state that 
 * The savefile needs to be provided in the same directory as the game.
 * Savefiles are intended to be used with the FST format as data.sav, this means that for game.iso, the savefile is called game.isodata.sav
 * The FST format allows swapping ROMs quickly for testing the emulator.
-* Patches to zoom, oversample, remove dither, change screen filters, and brightness will be available as a patch.txt file.
 
 # Video
 [![Video backstory](https://img.youtube.com/vi/BbS-w6YMeiI/maxresdefault.jpg)](https://youtu.be/BbS-w6YMeiI)
@@ -44,11 +44,17 @@ After years of working on this on and off, I think it's finally in a state that 
 
 It's intended to be interchangeable with Devolution, so memory cards now go in the /apps/gc_devo/ folder with the memcard.bin filename.
 
-For the GameCube main menu /apps/gc_devo/ipl.bin, as is the case with segaboot.bin.
+For the GameCube main menu it's /apps/gc_devo/ipl.bin, same goes for segaboot.bin.
 
-You can't load games from the internal interface itself, but you can specify an argument in the meta.xml, like: "usb:/games/Sonic Riders [GXEE8P]/game.iso" to autoboot a game, see the release pack for another example.
+The loader.dol you can get from the "Releases" tab on this page can be placed on your SD card or USB device, use an app like USB Loader GX to set it as the main GameCube loader, and then launch a game.
+
+You can't load games from the internal interface itself, but you can specify an argument in the meta.xml, like: "usb:/games/Sonic Riders [GXEE8P]/game.iso" to autoboot a game, see the release pack for another example. Don't try renaming it to boot.dol without an argument in the meta.xml, otherwise it will just exit.
+
+If you specify an invalid path, it will let you know by showing it on the screen.
 
 For regular loading, use USB Loader GX, WiiFlow, etc. The internal interface isn't used because the loader would initialize the wiimote, making the boot process longer, the interface is also visually offensive.
+
+Only one storage device can be loaded, SD or USB. If the game is on USB, then that means every asset (memcard.bin, ipl.bin, cheats, etc.) must be on the same device.
 
 To exit a game with the GameCube controller, you must either press the power button, or connect a wiimote and press A+HOME.
 
@@ -84,7 +90,7 @@ Gecko codes rely on PADRead and OSSleepThread to work and that makes some scenar
 
 While this is based on version 5.482, it merges most of the useful changes from later.
 
-BBA support was notably left out since I have no use for it. DRC (Wii U Gamepad) is also out, but can be compiled back easily. Nunchuk support has been completely removed.
+BBA support was notably left out since I have no use for it, it's also not trivial to merge and requires testing. Nunchuk support has been completely removed.
 
 This isn't intended to replace Nintendont, it is not my focus. The compatibility fixes are available to anyone, but going forward, the patching system will be crucial for my mods, so this standalone release will continue being supported.
 
