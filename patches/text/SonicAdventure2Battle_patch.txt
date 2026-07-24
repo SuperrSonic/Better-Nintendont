@@ -1,0 +1,61 @@
+#Sonic Adventure 2: Battle (NTSC-U)
+#GSNE8P
+DEFAULT:
+
+#Skip the progressive scan screen
+noProgAsk(1)
+
+#Remove all video patches
+#noVidpatch(1)
+#wiiChan(1)
+
+#Classic Controller direct button mapping
+#ccDirect(1)
+
+#Set a custom title for message board, if arg 3 starts with 0 it's unused
+#Both arg 2 and 3 have a limit of 21 characters
+#writePlaylog(1, Sonic_Adventure_2 , 0 )
+
+#Force the system menu to load on exit, useful for playlog
+#noLoadStub(1)
+
+#Force IPL boot jingle, 1 is baby, 2 is kabuki, higher is random
+#iplJingle(2)
+
+
+#NOTE--The patched theme is of course overriden when the savefile is loaded
+#the point of this is to get the Sonic Team call playing at bootup.
+
+#Randomize initial theme, allows Sonic Team character call
+#addr, start, end, pos, initial value
+rand(801CC1C4, 01, 0A, 2, 00000001)
+
+#random messages by any character for theme
+#rand(801CC1C4, 0B, FF, 2, 00000001)
+
+#Include JP and EN voices
+rand(801CC178, 0, 1, 3, 00010000)
+
+#Always JP Sonic theme
+#poke(801CC1C4, 000A0001)
+#poke(801CC178, 00010000)
+
+#Forcing a specific theme
+#0x01 = Shadow
+#0x02 = Rouge
+#0x03 = Eggman
+#0x04 = Maria
+#0x05 = Secretary
+#0x06 = Tails
+#0x07 = Amy
+#0x08 = Omochao
+#0x09 = Knuckles
+#0x0A = Sonic
+#Any values greater will play different sounds from the game.
+
+
+#triforce option
+triArcade(1)
+
+#vertical reduction
+
