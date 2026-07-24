@@ -8,7 +8,7 @@
 #include "wiidrc.h"
 #define PAD_CHAN0_BIT				0x80000000
 
-//#define useDRC	1
+#define useDRC	1
 
 // This has been made possible on the games themselves
 #if 0
@@ -65,7 +65,7 @@ static vu32* isSMC       = (vu32*)0x802AD6D0; //constant value to determine game
 //static u8 forcePlayer = 0; // invalid value, so it first picks a free slot
 static vu32* P1force = (vu32*)0x932F0094;
 static vu32* wiiPort = (vu32*)0x932F0098;
-static vu32* CCDirect = (vu32*)0x932F009C;
+//static vu32* CCDirect = (vu32*)0x932F009C; // why does this break screenshots?
 
 static vu32* PADIsBarrel = (vu32*)0xD3003130;
 static vu32* PADBarrelEnabled = (vu32*)0xD3003140;
@@ -79,6 +79,8 @@ static vu32* PADSwitchRequired = (vu32*)0x93003064;
 static vu32* PADForceConnected = (vu32*)0x93003068;
 static vu32* drcAddress = (vu32*)0x9300306C;
 static vu32* drcAddressAligned = (vu32*)0x93003070;
+static vu32* CCDirect = (vu32*)0x93003074;
+static vu32* xfbMagic = (vu32*)0x92400000;
 
 static u32 PrevAdapterChannel1 = 0;
 static u32 PrevAdapterChannel2 = 0;
@@ -1005,6 +1007,176 @@ u32 _start(u32 calledByGame)
 			// HOME + A avoids user error
 			if(BTPad[chan].button & WM_BUTTON_HOME && BTPad[chan].button & WM_BUTTON_A)
 				goto DoExit;
+			else if(BTPad[chan].button & WM_BUTTON_HOME && BTPad[chan].button & WM_BUTTON_B
+					&& *xfbMagic != 0x58464231) {
+				u32 scrWidth;
+				u32 scrHeight;
+			//	vu16* viCLK = (vu16*)0xCC00206C;
+				vu16* HSW = (vu16*)0xCC002048;
+				vu16* ACV = (vu16*)0xCC002000;
+			//	scrWidth = (*HSW >> 8) * 16; // Animal Crossing lies??
+				scrWidth = (*HSW & 0xFF) << 3;
+			//	scrHeight = *ACV >> 4;
+			//	if(*viCLK != 1)
+			//		scrHeight *= 2;
+				
+				// geckodotnet does height differently
+				scrHeight = (((*ACV >> 8) << 5) | ((*ACV & 0xFF) >> 3)) & 0x07FE;
+				
+				if (scrHeight > 600) {
+					scrHeight /= 2;
+					scrWidth *= 2;
+				}
+			//	vu32* xfbMagic = (vu32*)0x92400000;
+				*xfbMagic = 0x58464231;
+				
+				vu8* bmpHDR = (vu8*)0x92400010;
+				vu8* xfbCopy = (vu8*)0x92500000;
+				
+				vu32* VI_FB_BASE = (vu32*)0xCC00201C;
+				vu8* current_xfb;
+				if(*VI_FB_BASE & (1 << 28))
+					current_xfb = (vu8 *)(((*VI_FB_BASE << 5) & 0xFFFFFF) | 0x81000000); // Spider-Man 2
+				else
+					current_xfb = (vu8 *)((*VI_FB_BASE & 0xFFFFFF) | 0x80000000);
+				
+				// X offset handling from geckodotnet
+				current_xfb -= ((*VI_FB_BASE & 0x0F000000) >> 24) << 3;
+				
+				// Check 80088980 in Animal Crossing.
+				// Why is Devolution's screenshot 608, while here it HAS to be 640?
+				// NES titles that use 240p are also not using the real size.
+				
+				if (current_xfb) {
+					vu32* xfbAddr = (vu32*)0x92400008;
+					*xfbAddr = *VI_FB_BASE;
+					
+					u32 sizeCopy = scrWidth * scrHeight * 2;
+					u32 c;
+					for(c = 0; c < (sizeCopy/4); ++c)
+						((u32*)xfbCopy)[c] = ((u32*)current_xfb)[c];
+#pragma pack(push, 1)
+					typedef struct {
+						u16 bfType;
+						u32 bfSize;
+						u16 bfReserved1;
+						u16 bfReserved2;
+						u32 bfOffBits;
+					} BITMAPFILEHEADER;
+
+					typedef struct {
+						u32 biSize;
+						s32 biWidth;
+						s32 biHeight;
+						u16 biPlanes;
+						u16 biBitCount;
+						u32 biCompression;
+						u32 biSizeImage;
+						s32 biXPelsPerMeter;
+						s32 biYPelsPerMeter;
+						u32 biClrUsed;
+						u32 biClrImportant;
+						u16 pad;
+					} BITMAPINFOHEADER;
+#pragma pack(pop)
+					u32 bodySize = scrWidth * scrHeight * 3;
+					u32 hdrFullSz = 0x38 + bodySize;
+					
+					// Save info
+					vu32* datSize = (vu32*)0x92400004;
+					*datSize = hdrFullSz;
+					
+					// NOTE: The Wii has instructions for doing this
+					hdrFullSz = ((hdrFullSz >> 24) & 0xff) |
+								((hdrFullSz << 8)  & 0xff0000) |
+								((hdrFullSz >> 8)  & 0xff00) |
+								((hdrFullSz << 24) & 0xff000000);
+					
+					bodySize = ((bodySize >> 24) & 0xff) |
+								((bodySize << 8)  & 0xff0000) |
+								((bodySize >> 8)  & 0xff00) |
+								((bodySize << 24) & 0xff000000);
+					
+					u32 leWidth = ((scrWidth >> 24) & 0xff) |
+								((scrWidth << 8)  & 0xff0000) |
+								((scrWidth >> 8)  & 0xff00) |
+								((scrWidth << 24) & 0xff000000);
+					u32 leHeight = ((scrHeight >> 24) & 0xff) |
+								((scrHeight << 8)  & 0xff0000) |
+								((scrHeight >> 8)  & 0xff00) |
+								((scrHeight << 24) & 0xff000000);
+					
+					BITMAPFILEHEADER bmfh = {0x424D, hdrFullSz, 0, 0, 0x38000000};
+					BITMAPINFOHEADER bmih = {0x28000000, leWidth, leHeight,
+					0x0100, 0x1800, 0, bodySize, 0, 0, 0, 0, 0};
+					
+					// Devolution sets PelsPerMeter to provide the exact aspect ratio,
+					// cool to have but WiiXplorer's BMP reader ignores it anyway.
+					
+					u8 *src1 = (u8 *)&bmfh;
+					u8 *src2 = (u8 *)&bmih;
+					
+					// Copy to start of BMP
+					for(c = 0; c < 0xE; ++c)
+						bmpHDR[c] = src1[c];
+					for(c = 0xE; c < 0x38; ++c)
+						bmpHDR[c] = src2[c-0xE];
+					
+					// geckodotnet seems to do this with just one loop.
+					// crediar's ycbcr2bmp isn't open source.
+					// Results seem to be a bit darker than expected
+					// but still looks OK.
+					
+					u32 move = 0x38;
+					s32 row, col, i, p = 0;
+					for (row = scrHeight - 1; row >= 0; row--) {
+					for (col = 0; col < scrWidth; col += 2) {
+						// NOTE: This code kept giving me wrong results
+						// so AI was used to fix it.
+						
+						// Calculate index for the YUYV/YCbCr422 macropixel
+						// Each iteration handles 2 pixels (4 bytes)
+						i = (row * scrWidth * 2) + (col * 2);
+
+						u8 y1 = xfbCopy[i];
+						u8 cb = xfbCopy[i+1];
+						u8 y2 = xfbCopy[i+2];
+						u8 cr = xfbCopy[i+3];
+
+						u8 ys[2] = {y1, y2};
+
+						for (p = 0; p < 2; p++) {
+							s32 r = ys[p] + 1.370705 * (cr - 128);
+							s32 g = ys[p] - 0.337633 * (cb - 128) - 0.698001 * (cr - 128);
+							s32 b = ys[p] + 1.732446 * (cb - 128);
+							
+							b = (u8)(b < 0 ? 0 : (b > 255 ? 255 : b));
+							g = (u8)(g < 0 ? 0 : (g > 255 ? 255 : g));
+							r = (u8)(r < 0 ? 0 : (r > 255 ? 255 : r));
+							
+							bmpHDR[move+0] = b;
+							bmpHDR[move+1] = g;
+							bmpHDR[move+2] = r;
+							move += 3;
+						}
+					}
+					}
+					u32 start = (u32)bmpHDR & ~31;
+					u32 end = (u32)bmpHDR + *datSize;
+					u32 addr = 0;
+					// Simple DCFlushRange
+					for (addr = start; addr < end; addr += 32) {
+						asm volatile("dcbf 0, %0" : : "r"(addr));
+					}
+					asm volatile("sync");
+				}
+				
+				//goto DoExit;
+			}
+			else if(BTPad[chan].button & WM_BUTTON_HOME && BTPad[chan].button & WM_BUTTON_MINUS
+				&& *xfbMagic == 0x58464231) {
+					*xfbMagic = 0;
+			}
 			
 		/*	else if(BTPad[chan].button & WM_BUTTON_HOME && BTPad[chan].button & WM_BUTTON_B) {
 				//++forcePlayer;
@@ -1562,7 +1734,7 @@ u32 _start(u32 calledByGame)
 		if(BTPad[chan].used & (C_CC | C_CCP))
 		{
 			// Input cannot be changed during gameplay, it's just bad design.
-			if(*CCDirect)
+			if(*CCDirect == 1)
 			{
 				if(BTPad[chan].button & BT_BUTTON_A)
 					button |= PAD_BUTTON_A;

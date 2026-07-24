@@ -61,6 +61,105 @@ static const WCHAR fatDevName[2] = { 0x002F, 0x0000 };
 //#define SMC_DAT 0x003FCA68
 //u32 retriesFix = 0;
 
+static void saveScreenshotData(void)
+{
+	sync_before_read((void*)0x12400000, 0x20);
+	if(read32(0x12400000) != 0x58464231)
+		return;
+	
+	u32 xfbAddr = read32(0x12400008);
+	u32 sizeCopy = read32(0x12400004);
+	dbgprintf("\r\nXFB: Found. size: 0x%X, addr: 0x%08X\r\n", sizeCopy, xfbAddr);
+
+#if 1
+	char *path = (char*)malloca( 0x40, 32 );
+	u32 fileExists = 1;
+	int ret;
+	FIL f;
+	do {
+		if(fileExists > 99)
+			break;
+		//set32(HW_GPIO_OUT, 1 << 5);
+		_sprintf(path, "/private/xfb_%02d.bmp", fileExists++);
+		ret = f_open_char(&f, path, FA_CREATE_NEW|FA_WRITE);
+		if(ret == FR_OK)
+		{
+			//clear32(HW_GPIO_OUT, 1 << 5);
+			break;
+		} else {
+			if(ret != FR_EXIST)
+			{
+				dbgprintf("\rXFB: saving failed.\r\n");
+			}
+		}
+	} while(1);
+	free(path);
+	if(ret == FR_OK)
+	{
+		UINT wrote;
+		sync_before_read((void*)0x12400010, sizeCopy);
+		//f_lseek(&f, 0);
+		f_write(&f, (void*)0x12400010, sizeCopy, &wrote);
+		f_close(&f);
+		dbgprintf("\rXFB: picture saved.\r\n");
+	}
+#else
+	// Copy data
+	char *path = (char*)malloca( 0x40, 32 );
+	_sprintf(path, "/private/xfb_screenshot.bmp");
+	FIL f;
+	int ret = f_open_char(&f, path, FA_WRITE|FA_CREATE_ALWAYS);
+	if(ret == FR_OK)
+	{
+		UINT wrote;
+		sync_before_read((void*)0x12400010, sizeCopy);
+		f_write(&f, (void*)0x12400010, sizeCopy, &wrote);
+		f_close(&f);
+		dbgprintf("\rXFB: picture saved.\r\n");
+	}
+	free(path);
+#endif
+	
+	// Update for next launch
+	write32(0x12400000, 0);
+	sync_after_write((void*)0x12400000, 0x4);
+	
+	// Turn off slot light
+	//clear32(HW_GPIO_OUT, 1 << 5);
+}
+
+// Dump PKM Box crash info
+static void saveContextDump(void)
+{
+	// None of this works, PKM Box seems to break logging?
+	u32 ptr2Context = 0;
+	sync_before_read((void*)0x1F1858, 0x20);
+	ptr2Context = read32(0x1F1858);
+	dbgprintf("\rCON: Checking context.\r\n");
+	if(ptr2Context == 0)
+		return;
+	
+	dbgprintf("\rCON: found context.\r\n");
+	
+	// for arm
+	ptr2Context &= 0xFFFFFFF;
+	
+	char *path = (char*)malloca( 0x40, 32 );
+	_sprintf(path, "/private/context.bin");
+	FIL f;
+	int ret = f_open_char(&f, path, FA_WRITE|FA_CREATE_ALWAYS);
+	if(ret == FR_OK)
+	{
+		UINT wrote;
+		f_lseek(&f, 0);
+		sync_before_read((void*)ptr2Context, 8 * 1024);
+		f_write(&f, (void*)ptr2Context, 8 * 1024, &wrote);
+		f_close(&f);
+		dbgprintf("\rCON: context saved.\r\n");
+	}
+	free(path);
+}
+
 static bool copySafe = false;
 static u16 sramShift = 0;
 static const u32 gameSTR = 0x696CA4;
@@ -109,6 +208,8 @@ void SysReset( void )
 bool AGB_Loaded = false;
 extern u32 useAGB;
 u32 AGBTimer = 0;
+
+static u32 SCRShot = 0;
 
 extern u32 useGenesis;
 
@@ -336,6 +437,7 @@ int _main( int argc, char *argv[] )
 	Reboot = Now;
 	bool reboot_now = false;
 	AGBTimer = Now;
+	SCRShot = Now;
 
 	//enable ios led use
 	access_led = ConfigGetConfig(NIN_CFG_LED);
@@ -346,10 +448,10 @@ int _main( int argc, char *argv[] )
 		clear32(HW_GPIO_OWNER, GPIO_SLOT_LED);
 	}
 
-	set32(HW_GPIO_ENABLE, GPIO_SENSOR_BAR);
-	clear32(HW_GPIO_DIR, GPIO_SENSOR_BAR);
-	clear32(HW_GPIO_OWNER, GPIO_SENSOR_BAR);
-	set32(HW_GPIO_OUT, GPIO_SENSOR_BAR);	//turn on sensor bar
+//	set32(HW_GPIO_ENABLE, GPIO_SENSOR_BAR);
+//	clear32(HW_GPIO_DIR, GPIO_SENSOR_BAR);
+//	clear32(HW_GPIO_OWNER, GPIO_SENSOR_BAR);
+//	set32(HW_GPIO_OUT, GPIO_SENSOR_BAR);	//turn on sensor bar
 
 	clear32(HW_GPIO_OWNER, GPIO_POWER); //take back power button
 
@@ -453,7 +555,7 @@ int _main( int argc, char *argv[] )
 				;
 		}
 #endif
-#if 1
+#if 0
 		else if(useGenesis)
 		{
 			// Now for detecting roms embedded in Flicky
@@ -609,6 +711,18 @@ int _main( int argc, char *argv[] )
 			}
 		}
 #endif
+#if 0
+		else if(TimerDiffSeconds(SCRShot) > 10)
+		{
+			sync_before_read((void*)0x12400000, 4);
+			if(read32(0x12400000) == 0x58464231) {
+			// not working
+			DIFinishAsync();
+			saveScreenshotData();
+			SCRShot = read32(HW_TIMER);
+			}
+		}
+#endif
 		else if(UseUSB && TimerDiffSeconds(USBReadTimer) > 149) /* Read random sector every 2 mins 30 secs */
 		{
 			DIFinishAsync(); //if something is still running
@@ -737,6 +851,24 @@ int _main( int argc, char *argv[] )
 			 * by using hw to exit instead of the reset stub. */
 			//if( ConfigGetConfig(NIN_CFG_MEMCARDEMU) )
 				//EXIShutdown();
+			
+		//	sync_before_read((void*)0x22b580, 0x20);
+		//	dbgprintf("PKMBOX interrupt %d\n", read32(0x22b580));
+			
+		//	sync_before_read((void*)0x22b57c, 0x20);
+		//	dbgprintf("PKMBOX SRR0 0x%08X\n", read32(0x22b57c));
+			
+			// This won't work because OSReport logging is already broken at this point
+			//sync_before_read((void*)0x1F1854, 0x20);
+			//dbgprintf("PKMBOX: 0x%08X\n", read32(0x1F1854));
+			
+			//dump stuff
+			//saveContextDump();
+			
+			//DIFinishAsync();
+			//if (ConfigGetConfig(NIN_CFG_LOG))
+				//closeLog();
+			
 			SysReset();
 		}
 	/*	if(reset_status == 0x7DEB) {
@@ -792,6 +924,9 @@ int _main( int argc, char *argv[] )
 
 	if(useAGB && AGB_Loaded)
 		AGB_Save();
+
+	// Write screenshot if it exists
+	saveScreenshotData();
 
 	if(ConfigGetConfig(NIN_CFG_MEMCARDEMU))
 		EXIShutdown();
