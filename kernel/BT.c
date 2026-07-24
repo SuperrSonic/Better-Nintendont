@@ -819,18 +819,35 @@ void BTUpdateRegisters(void)
 				}
 			}
 		}
+	#if 1
 		// SuSo: inactivity disconnect for wiimote
 		if(BTPad[i].button > 0)
 			BTPadConnected[i]->timeout = read32(HW_TIMER);
-		// this used to be else if
-		if((exit_now == false && TimerDiffSeconds(BTPadConnected[i]->timeout) >= 20 && BTPadConnected[i]->controller == C_NOT_SET)
-		|| (exit_now == false && TimerDiffSeconds(BTPadConnected[i]->timeout) >= 180 && BTPadConnected[i]->controller == C_NUN))
+		
+		// This helps with timer overflow but on rare occasions it still fails
+		u32 TimerDiffVar = TimerDiffSecondsBasic(BTPadConnected[i]->timeout);
+	/*
+		if(TimerDiffVar == UINT_MAX) {
+			u32 tries = 4;
+			while(read32(HW_TIMER) == UINT_MAX) {
+				if(tries < 1)
+					break;
+				--tries;
+			}
+			BTPadConnected[i]->timeout = read32(HW_TIMER);
+		}*/
+	#endif
+	//	if(exit_now == false && TimerDiffVar >= 20 && BTPadConnected[i]->controller == C_NOT_SET)
+		if((exit_now == false && TimerDiffVar >= 20 && BTPadConnected[i]->controller == C_NOT_SET)
+			|| (exit_now == false && TimerDiffVar >= 180 && BTPadConnected[i]->controller == C_NUN))
 		{
 			bte_disconnect(BTPadConnected[i]->sock);
 			
 			// reconnect virtual nunchuk if nothing is connected
 			forceNun = true;
 			nunTimer = 0;
+			
+			dbgprintf("BT timed out!\n");
 			
 			// avoid using since virtual nunchuk can exit with HOME + A
 			//exit_now = true;
