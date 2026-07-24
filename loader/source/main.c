@@ -68,6 +68,8 @@ static u8 playlog_name[0x2B] = {0}; //can be larger, but the playlog's can't
 static u8 useCustom = 0;
 
 static u32 jingle = 0;
+static bool ccDirect = false;
+static bool load32MB = false;
 
 static u8 multAddr = 0;
 
@@ -221,9 +223,9 @@ static void app_loadgameconfig(u8 *tempgameconf, u32 tempgameconfsize)
 		return;
 
 	// initialize memory to 0
-	vu32* CCdirect = (vu32*)0x932F009C;
-	*CCdirect = 0;
-	DCFlushRange((void*)CCdirect, 0x4);
+//	vu32* CCdirect = (vu32*)0x932F009C;
+//	*CCdirect = 0;
+//	DCFlushRange((void*)CCdirect, 0x4);
 
 	u32 ret;
 	s32 gameidmatch, maxgameidmatch = -1, maxgameidmatch2 = -1;
@@ -533,11 +535,11 @@ static void app_loadgameconfig(u8 *tempgameconf, u32 tempgameconfsize)
 						ret = sscanf((char *)tempgameconf + i, "( %x ", (unsigned int *)&codeval);
 						if (ret == 1)
 						{
-							// Direct button mapping, less confusing
+							// Direct button mapping
 							if(codeval > 0) {
-								//set mem2 bool
-								*CCdirect = 1;
-								DCFlushRange((void*)CCdirect, 0x4);
+								ccDirect = true;
+							//	*CCdirect = 1;
+							//	DCFlushRange((void*)CCdirect, 0x4);
 							}
 						}
 					}
@@ -574,6 +576,17 @@ static void app_loadgameconfig(u8 *tempgameconf, u32 tempgameconfsize)
 							//for most titles no delay should work
 							//0:no delay
 							ncfg->CardDelay = codeval;
+						}
+					}
+					if (strncasecmp("use32MB", parsebuffer, strlen(parsebuffer)) == 0 && strlen(parsebuffer) == 7)
+					{
+						ret = sscanf((char *)tempgameconf + i, "( %x ", (unsigned int *)&codeval);
+						if (ret == 1)
+						{
+							// This signals to load a 32 MB GBA ROM into MEM2 for the AGB emulator
+							if(codeval > 0) {
+								load32MB = true;
+							}
 						}
 					}
 					if (strncasecmp("writePlaylog", parsebuffer, strlen(parsebuffer)) == 0 && strlen(parsebuffer) == 12)
@@ -1597,7 +1610,8 @@ int main(int argc, char **argv)
 	{
 		// Preparing IOS58 Kernel...
 		if(argsboot == false)
-			ShowMessageScreen("Preparing IOS58 Kernel...");
+			ExitToLoader(1); // SuSo: no more hangs
+		//	ShowMessageScreen("Preparing IOS58 Kernel...");
 
 		u32 u;
 		//Disables MEMPROT for patches
@@ -1727,6 +1741,15 @@ int main(int argc, char **argv)
 		//only check SD on Wii VC
 		if(i == DEV_USB && isWiiVC)
 			break;
+		
+		// If the game is on USB, don't mount SD
+		if(i == DEV_SD && ncfg->Config & NIN_CFG_AUTO_BOOT && (ncfg->Config & NIN_CFG_USB) == 1)
+			continue;
+		
+		// Not having a USB device connected makes launching from SD ~10 secs slower
+		if(i == DEV_USB && ncfg->Config & NIN_CFG_AUTO_BOOT && (ncfg->Config & NIN_CFG_USB) == 0)
+			break;
+		
 		//check SD and USB on Wii and WiiU
 		const WCHAR *devNameFF = MountDevice(i);
 		if (devNameFF && !foundOneDevice)
@@ -2598,6 +2621,10 @@ int main(int argc, char **argv)
 	strcpy((char*)0x930031A0, "ARStartDMA: %08x %08x %08x\n"); //ARStartDMA Debug
 	memset((void*)0x930031E0, 0, 0x20); //clears tgc stuff
 	DCFlushRange((void*)0x93003000, 0x200);
+	
+	// Classic Controller direct button mapping
+	if(ccDirect)
+		*(vu32*)0x93003074 = 1;
 
 	//lets prevent weird events
 	__STM_Close();
@@ -2618,6 +2645,39 @@ int main(int argc, char **argv)
 	DCInvalidateRange((void*)0x90000000, 0x1000000);
 	memset((void*)(void*)0x90000000, 0, 0x1000000); //clear ARAM
 	DCFlushRange((void*)0x90000000, 0x1000000);
+	
+	// Since ARAM has been cleared, try loading it now
+	if(load32MB) {
+		char agbPath[255];
+		snprintf(agbPath, sizeof(agbPath), "%s:%s", GetRootDevice(), ncfg->GamePath);
+		u32 i;
+		//search the string backwards for '/'
+		for (i = strlen(agbPath); i > 0; --i)
+		{
+			if( agbPath[i] == '/' )
+				break;
+		}
+		i++;
+		snprintf(agbPath+i, sizeof(agbPath), "rom.bin");
+		FIL f;
+		if( f_open_char( &f, agbPath, FA_READ|FA_OPEN_EXISTING ) == FR_OK )
+		{
+			if( f.obj.objsize > 32*1024*1024 )
+			{
+				;//dbgprintf("Patch:File is too large, can't be larger than 32 MB!\r\n");
+			}
+			else
+			{
+				void *patchbuf = (void*)0x90000000;
+				UINT read;
+				f_read(&f, patchbuf, f.obj.objsize, &read);
+			}
+			f_close( &f );
+		}
+		
+		DCFlushRange((void*)0x90000000, 0x1000000);
+		DCFlushRange((void*)0x91000000, 0x1000000);
+	}
 
 	gprintf("Game Start\n");
 	//alow interrupts on Y2
