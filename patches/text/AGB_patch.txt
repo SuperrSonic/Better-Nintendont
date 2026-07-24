@@ -1,0 +1,149 @@
+#AGB Emulator - type Mario vs DK
+DEFAULT:
+
+#Make the first wii remote P1
+wiiChan(1)
+
+#Classic Controller direct button mapping
+#ccDirect(1)
+
+#noTrapFilter(1)
+
+#Remove all video patches, some loaders will force video no matter what
+noVidpatch(1)
+
+#Adjust AVE-RVL volume from 1 to 255
+#volume(255)
+
+#Force IPL boot jingle, 1 is baby, 2 is kabuki, higher is random
+#iplJingle(2)
+
+#Set a custom title for message board, if arg 3 starts with 0 it's unused
+#Both arg 2 and 3 have a limit of 21 characters
+#writePlaylog(1, Sonic_Heroes , 0 )
+
+#Allows using special characters, can use 0x20 for spaces
+#hexPlaylog(1, 466972E9, 20456D62, 6C656D0A, 50617468, 206F6620, 52616421, 0, 0, 0, 0)
+
+#Make Nintendont load a GBA ROM into MEM2
+#use32MB(1)
+
+
+#AGB emulator settings
+
+#Enable 32 MB ROM reads to work (works on Dolphin if MEM1 is expanded)
+#poke(8004F080, 3C600200)
+
+#Force ROM reads from MEM2 (not working)
+#poke(80006D5C, 3C609000)
+
+#Always render, avoid
+#poke(80006F04, 60000000)
+
+#Speed change, fixes frame judder, og value is 1C004167
+#This value is the milliseconds the frame will last, the original is 16,743 which matches the GBA
+#but by matching the GC fps 59.94, removes the judder. Try 414B for 240p.
+#poke(80006DB0, 1C00412B)
+
+#VSync call, fixes frame judder
+poke(80006F0C, 48013355)
+
+#Skip VSync checks
+poke(80006F00, 4800000C)
+
+#Change pixel format from RGBA6 to RGB565(2) or RGB8(0), removes dithering
+poke(8000630C, 38600000)
+
+#Dark filter, C8C8C8FF = original GBP level 18% black, BGR order
+#poke(800A1C6C, FFFFFFFF)
+
+#Change GBPlayer-style screen filter (original = normal) 0=sharp, 1=soft, 2=normal
+poke(80006DF8, 38600000)
+
+#Force bilinear filter, blurry
+#poke(80006C28, 38A00001)
+
+#Force 2x bilinear filter, sharp
+poke(80006FCC, 38A00001)
+
+#Screen zoom 2.375x, Width, Height, X, Y
+poke(8000699C, 38600014)
+poke(800069A0, 38800020)
+poke(800069A8, 38C0023A)
+poke(800069AC, 38E0017C)
+
+#Z position?
+#poke(800069A4, 38A00064)
+
+#Initial scale, before the GBA boot animation
+poke(8000681C, 38600040)
+poke(80006820, 38800040)
+poke(8000682C, 38C001E0)
+poke(80006830, 38E00140)
+
+#Color masking for the screen border in BGRA, hide border by setting it to black
+#poke(800A1C58, 000000FF)
+
+#Remove screen border rendering entirely, edit third line to set background color in BGR order
+#poke(800069C8, 60000000)
+#poke(8000680C, 60000000)
+#poke(800A1C40, 000000FF)
+
+#Update FLASH save for Starlet
+poke(8002CD54, 4803B83C)
+poke(80068590, 9003002C)
+poke(80068594, 60000000)
+poke(80068598, 60000000)
+poke(8006859C, 3DC08009)
+poke(800685A0, 61CEA320)
+poke(800685A4, 81EE0000)
+poke(800685A8, 55EF0034)
+poke(800685AC, 3E000002)
+poke(800685B0, 7E0F8214)
+poke(800685B4, 7DF17B78)
+poke(800685B8, 7C0088AC)
+poke(800685BC, 3A310020)
+poke(800685C0, 7C118040)
+poke(800685C4, 4180FFF4)
+poke(800685C8, 7C0004AC)
+poke(800685CC, 4BFC478C)
+
+#The 2 no-ops can be changed to check against r7
+#to prevent needlessly flushing every time a write occurs
+#28078FFF cmplwi
+#40820034 bne
+#On Dolphin this makes the flush loop only execute once
+#but on Nintendont the corrupted save message can still happen
+
+#Call DCFlushRange for 1M FLASH saves, skips over full save
+#poke(8002CCA4, 4803B8EC)
+#poke(80068590, 4BF9AEC9)
+#poke(80068594, 38801000)
+#poke(80068598, 80CD8888)
+#poke(8006859C, 54630426)
+#poke(800685A0, 3CC60004)
+#poke(800685A4, 60000000)
+#poke(800685A8, 80CD8888)
+#poke(800685AC, 3CC60004)
+#poke(800685B0, 80060008)
+#poke(800685B4, 80C60000)
+#poke(800685B8, 7C600378)
+#poke(800685BC, 7C660214)
+#poke(800685C0, 4BFA3E99)
+#poke(800685C4, 38600000)
+#poke(800685C8, 38800000)
+#poke(800685CC, 4BFC46DC)
+
+#Italian Ruby title id, don't know what this does, FireRed whitescreens
+#poke(800A1400, 42505245)
+
+
+
+
+#If Arcade mode is OFF in settings the rest of the patches are skipped
+triArcade(1)
+
+
+#Set the GBA BG to black
+poke(800A1C60, 00000000)
+
