@@ -1,0 +1,105 @@
+#Pokemon Box (NTSC-U)
+DEFAULT:
+
+
+#Remove all video patches
+noVidpatch(1)
+
+#Prefer wiimote as controller
+wiiChan(1)
+
+#Classic Controller direct button mapping
+#ccDirect(1)
+
+
+#Game patches
+
+#Have Adventure mode highlighted at the titlescreen
+pokeifequal(8001EA70, 38800000, 8001EA70, 38800001)
+
+#Zoom in by 2.1375 by using VI and Y scaling approx 568x342
+#pokeifequal(801DFD34, 026001C0, 801dfd38, 01E00000)
+#pokeifequal(801DFD34, 026001C0, 801dfd3c, 000002D0)
+
+#Change colors in BGR order, C8 is close to 20% black
+#pokeifequal(8022C640, C8C8C800, 8022C640, F8F8F800)
+
+#Change screen filter 0=Sharp, 1=Normal, 2=Soft
+#NOTE-- Sharp is stubbed, it doesn't render video
+#pokeifequal(80083970, 38800001, 80083970, 38800002)
+
+#Break screen filter Soft so it doesn't blend, making it replicate the sharp filter
+#pokeifequal(80084EAC, 901E0158, 80084EAC, 901E0178)
+#pokeifequal(80084E98, 389E013C, 80084E98, 389E015C)
+
+#Force bilinear filter, useless for now
+#pokeifequal(80083984, 38000000, 80083984, 38000001)
+
+#Load AGB emulator when selecting Adventure Mode
+pokeifequal(8001FD48, 480001AC, 8001FD4C, 3C608023)
+pokeifequal(8001FD48, 480001AC, 8001FD50, 8063AE90)
+pokeifequal(8001FD48, 480001AC, 8001FD54, 38800011)
+pokeifequal(8001FD48, 480001AC, 8001FD58, 90830000)
+pokeifequal(8001FD48, 480001AC, 8001FD5C, 48000008)
+
+#Insert default ROM which is Ruby version 1 AAXVE01.srl
+pokeifequal(800877B0, 7C030378, 800877B8, 60000000)
+pokeifequal(800877B0, 7C030378, 80087800, 60000000)
+
+#Use Sapphire instead AAXPE01.srl
+pokeifequal(800877B0, 7C030378, 800877E0, 808D8124)
+
+#Override ROM selected to version 2 AAXVE20.srl
+pokeifequal(800877B0, 7C030378, 800877CC, 41820010)
+
+#Override to Sapphire version 2 AAXPE20.srl
+#pokeifequal(800877B0, 7C030378, 800877D4, 808D812C)
+
+#Force alternate border to load
+#pokeifequal(8008381C, 4082005C, 8008381C, 4182005C)
+
+#Clear memset for save, no longer needed
+#pokeifequal(8015EA30, 4800028D, 8015EA30, 60000000)
+
+#save write handling
+pokeifequal(800BBDD0, 806D90D4, 800BBDD0, 481348A1)
+pokeifequal(801F0670, 6E67204F, 801F0670, 38000000)
+pokeifequal(801F0674, 53444249, 801F0674, 3D2080B7)
+pokeifequal(801F0678, 6E746567, 801F0678, 60008000)
+pokeifequal(801F067C, 7261746F, 801F067C, 61297EC0)
+pokeifequal(801F0680, 720A0000, 801F0680, 7C0903A6)
+pokeifequal(801F0684, 3E3E3E20, 801F0684, 80090000)
+pokeifequal(801F0688, 4F53494E, 801F0688, 3D6900C6)
+pokeifequal(801F068C, 49543A20, 801F068C, 39290004)
+pokeifequal(801F0690, 65786365, 801F0690, 900B3EF0)
+pokeifequal(801F0694, 7074696F, 801F0694, 4200FFF0)
+pokeifequal(801F0698, 6E202564, 801F0698, 806D90D4)
+pokeifequal(801F069C, 20636F6D, 801F069C, 4E800020)
+
+#save read handling
+pokeifequal(800BA354, 808D90D4, 800BA354, 4813634D)
+pokeifequal(801F06A0, 6D616E64, 801F06A0, 38000000)
+pokeifequal(801F06A4, 65657265, 801F06A4, 3D20817D)
+pokeifequal(801F06A8, 64206279, 801F06A8, 60008000)
+pokeifequal(801F06AC, 2054524B, 801F06AC, 6129BDB0)
+pokeifequal(801F06B0, 0A000000, 801F06B0, 7C0903A6)
+pokeifequal(801F06B4, 3E3E3E20, 801F06B4, 80090000)
+pokeifequal(801F06B8, 4F53494E, 801F06B8, 3D69FF3A)
+pokeifequal(801F06BC, 49543A20, 801F06BC, 39290004)
+pokeifequal(801F06C0, 65786365, 801F06C0, 900BC110)
+pokeifequal(801F06C4, 7074696F, 801F06C4, 4200FFF0)
+pokeifequal(801F06C8, 6E202564, 801F06C8, 808D90D4)
+pokeifequal(801F06CC, 20766563, 801F06CC, 4E800020)
+
+
+#triforce option
+triArcade(1)
+
+#240p in 480i
+
+
+#vfilter sharp
+pokeifequal(801DFD34, 026001C0, 801DFD60, 090A0000)
+pokeifequal(801DFD34, 026001C0, 801DFD64, 15161500)
+pokeifequal(801DFD34, 026001C0, 801DFD68, 00000000)
+
