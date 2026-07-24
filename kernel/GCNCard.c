@@ -55,11 +55,13 @@ extern u32 useAGB;
 //GM RGBA: 0x800A1C6C
 
 // TPL header
-u32 tpl_hdr[16] = { 0x0020AF30, 1, 0xC, 0x14, 0, 0x00D80238, 0xE, 0x40, 0, 0, 1, 1, 0, 0, 0, 0 };
+static u32 tpl_hdr[16] = { 0x0020AF30, 1, 0xC, 0x14, 0, 0x00D80238, 0xE, 0x40, 0, 0, 1, 1, 0, 0, 0, 0 };
+
+static u32 chksum = 0;
 
 u32 CheckSaves()
 {
-	u32 size = 0x8000; //32 KB
+	u32 size = 0x10000; //64 KB
 	u32 rom_ptr = 0xAC;
 	
 	if(useAGB == 2)
@@ -80,7 +82,7 @@ u32 CheckSaves()
 		read32(rom_ptr) >> 8 == 0x425045 || // Emerald
 		read32(rom_ptr) >> 8 == 0x425052 || // FireRed
 		read32(rom_ptr) >> 8 == 0x425047 || // LeafGreen
-	//	read32(rom_ptr) >> 8 == 0x423234 || // Red Rescue Team is 32 MB
+		read32(rom_ptr) >> 8 == 0x423234 || // Red Rescue Team is 32 MB
 		read32(rom_ptr) >> 8 == 0x415834 || // SMA4 - SMB3
 		read32(rom_ptr) >> 8 == 0x424654)   // F-Zero Climax
 		size = 0x20000;
@@ -91,6 +93,8 @@ u32 CheckSaves()
 			read32(rom_ptr) >> 8 == 0x423353 || // Advance 3
 			read32(rom_ptr) >> 8 == 0x425342)   // Sonic Battle
 			size = 0x10000;
+
+	//dbgprintf("AGB SRAM size: 0x%X\r\n", size);
 
 	return size;
 }
@@ -120,14 +124,20 @@ void AGB_Load(void)
 			sram_address &= 0x0FFFFFFF;
 			
 			UINT read;
-			f_lseek(&f, 0);
 			f_read(&f, (void*)sram_address, dat_size, &read);
 			f_close(&f);
-			dbgprintf("\r\nAGB: data loaded.\r\n");
+			sync_after_write((void*)sram_address, dat_size);
+			
+			// Keep a checksum for skipping writes if no changes are made
+			int i;
+			for(i = 0; i < dat_size; ++i)
+				chksum += ((u8 *)sram_address)[i];
+			
+			dbgprintf("AGB: data loaded. Chksm: 0x%X\r\n", chksum);
 		}
 		else
 		{
-			dbgprintf("\r\nAGB: Unable to load data: %u\r\n", ret);
+			dbgprintf("AGB: Unable to load data: %u\r\n", ret);
 		}
 		free(path);
 }
@@ -155,11 +165,20 @@ void AGB_Save(void)
 		//zero the 8 from address
 		sram_address &= 0x0FFFFFFF;
 		
-		UINT wrote;
-		f_lseek(&f, 0);
-		f_write(&f, (void*)sram_address, dat_size, &wrote);
+		UINT wrote = 0;
+		sync_before_read((void*)sram_address, dat_size);
+		
+		// Check to see if data changed
+		int i, activeSum = 0;
+		for(i = 0; i < dat_size; ++i)
+			activeSum += ((u8 *)sram_address)[i];
+		
+		if(activeSum != chksum)
+			f_write(&f, (void*)sram_address, dat_size, &wrote);
 		f_close(&f);
-		dbgprintf("\r\nAGB: data saved.\r\n");
+		
+		dbgprintf("\r\nAGB: data saving %s. Chksm: 0x%X Size: 0x%X\r\n",
+					wrote > 0 ? "done" : "skipped", activeSum, wrote);
 	}
 	else
 	{
@@ -169,20 +188,24 @@ void AGB_Save(void)
 
 
 	// PB has a screenshot feature, let's use it
-	if(ConfigGetGameID() == 0x47505845)
+	if(ConfigGetGameID() == 0x47505845 || ConfigGetGameID() == 0x47505850)
 	{
 		// A wallpaper was saved to Brigette's room
-		if(read32(0x9E5304) == 0x01000000)
+		if(read32(0x9E5304) == 0x01000000 || read32(0xA18784) == 0x01000000)
 		{
+			u32 picSize = 0xEFA0;
+			u32 picData = 0x9E5320;
+			if(read32(0xA18784) == 0x01000000) // PAL
+				picData = 0xA187A0;
 			path = (char*)malloca( 0x40, 32 );
 			_sprintf(path, "/private/pb_picture.tpl");
 			ret = f_open_char(&f, path, FA_WRITE|FA_OPEN_ALWAYS);
 			if(ret == FR_OK)
 			{
 				UINT wrote;
-				f_lseek(&f, 0);
+				sync_before_read((void*)picData, picSize);
 				f_write(&f, tpl_hdr, 0x40, &wrote);
-				f_write(&f, (void*)0x9E5320, 0xEFA0, &wrote);
+				f_write(&f, (void*)picData, picSize, &wrote);
 				f_close(&f);
 				dbgprintf("\r\nAGB: picture saved.\r\n");
 			}
