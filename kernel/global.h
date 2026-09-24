@@ -320,6 +320,12 @@ static inline u32 TimerDiffSeconds(u32 time)
 	return TicksToSecs(curtime - time);
 }
 
+static inline u32 TimerDiffSecondsBasic(u32 time)
+{
+	u32 curtime = read32(HW_TIMER);
+	return TicksToSecs(curtime - time);
+}
+
 static inline u32 IsGCGame(u32 Buffer)
 {
 	u32 AMB1 = read32(Buffer+0x4);
