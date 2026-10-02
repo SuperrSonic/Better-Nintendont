@@ -305,7 +305,7 @@ void load_ipl(unsigned char *buf, bool prog, bool sharp, int jingle, int type)
 			*(s16 *)0x813824A8 = 0x0000;
 		}
 		
-		// Accept any region code (unneeded)
+		// Accept any region code
 		*(s16 *)0x81300882 = 1;
 		*(s16 *)0x813008A6 = 1;
 		
@@ -352,8 +352,8 @@ void load_ipl(unsigned char *buf, bool prog, bool sharp, int jingle, int type)
 		}
 		
 		// Accept any region code
-		*(s16 *)0x81300882 = 1;
-		*(s16 *)0x813008A6 = 1;
+		*(s16 *)0x8130077E = 1;
+		*(s16 *)0x813007A2 = 1;
 		
 		// Force boot sound. 1=kid, 2=kabuki
 		if(jingle > 0)
@@ -398,8 +398,8 @@ void load_ipl(unsigned char *buf, bool prog, bool sharp, int jingle, int type)
 		}
 		
 		// Accept any region code
-		*(s16 *)0x81300882 = 1;
-		*(s16 *)0x813008A6 = 1;
+		*(s16 *)0x8130077E = 1;
+		*(s16 *)0x813007A2 = 1;
 		
 		// Force boot sound. 1=kid, 2=kabuki
 		if(jingle > 0)
